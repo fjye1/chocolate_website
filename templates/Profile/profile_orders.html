@@ -1,0 +1,20 @@
+{% extends "Profile/profile_base.html" %}
+{% block title %}Profile Home{% endblock %}
+{% block profile_block %}
+ <!-- Profile Content -->
+    <div class="col-md-9">
+      <h2>User Profile</h2>
+      <div class="card p-3" style="max-width: 600px;">
+        <div class="text-center mb-3">
+          <img src="{{ current_user.email | gravatar }}" alt="Profile Picture" class="rounded-circle" width="100" height="100">
+        </div>
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item"><strong>Name:</strong> {{ current_user.name }}</li>
+          <li class="list-group-item"><strong>Email:</strong> {{ current_user.email }}</li>
+          <li class="list-group-item"><strong>Address:</strong> {{ current_user.address }}</li>
+          <li class="list-group-item"><strong>City:</strong> {{ current_user.city }}</li>
+          <li class="list-group-item"><strong>Postcode:</strong> {{ current_user.postcode }}</li>
+        </ul>
+      </div>
+    </div>
+  {% endblock %}

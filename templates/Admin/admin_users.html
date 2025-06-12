@@ -1,0 +1,22 @@
+{% extends "Admin/admin_base.html" %}
+{% block title %}Admin Home{% endblock %}
+
+{% block admin_block %}
+
+        <!-- Main content area (Unfulfilled Orders + Sales Chart) -->
+        <div class="col-md-9">
+            <div class="row">
+                <!-- Unfulfilled Orders -->
+                <div class="col-md-6">
+                    <h3>Unfulfilled Orders</h3>
+                    <p>No unfulfilled orders.</p>
+                </div>
+
+                <!-- Sales Chart -->
+                <div class="col-md-6">
+                    <h3>Weekly Sales (Sample)</h3>
+                    <img src="data:image/png;base64,{{ chart }}" class="img-fluid" alt="Sales Chart">
+                </div>
+            </div>
+        </div>
+    {% endblock %}

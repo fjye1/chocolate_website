@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block content %}
+    <title>Stripe Payment Element Demo</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        #payment-element {
+          margin-bottom: 20px;
+        }
+        #payment-message {
+          color: red;
+        }
+    </style>
+</head>
+<body>
+<h2>Pay £{{ '%.2f' | format(total) }}</h2>
+{% if current_user.current_address %}
+<form id="payment-form">
+    <div id="payment-element"></div>
+    <button id="submit" class="btn btn-success">Pay</button>
+    <div id="payment-message"></div>
+</form>
+<a href="{{ url_for('payment_success') }}" class="btn btn-success mt-3">Test Success</a>
+<a href="{{ url_for('payment_failure') }}" class="btn btn-danger mt-3">Test Failure</a>
+{% endif %}
+<h4>Shipping Address</h4>
+<div class="card p-3" style="max-width: 400px;">
+  {% if current_user.current_address %}
+    <p><strong>Name:</strong> {{ current_user.name }}</p>
+    <p><strong>Street:</strong> {{ current_user.current_address.street }}</p>
+    <p><strong>City:</strong> {{ current_user.current_address.city }}</p>
+    <p><strong>Postcode:</strong> {{ current_user.current_address.postcode }}</p>
+    <p><strong>Country:</strong> GB</p>
+  {% else %}
+    <p>No current address set. <a href="{{ url_for('profile_addresses') }}">Set one in your profile</a>.</p>
+  {% endif %}
+</div>
+<script>
+    let stripe, elements, paymentElement;
+
+    fetch('/cart-data')
+      .then(res => res.json())
+      .then(data => {
+        const amount = Math.round(data.total * 100); // pence for Stripe
+        const cart = data.items;
+
+        return fetch('/create-payment-intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount: amount, cart: cart })
+        });
+      })
+      .then(res => res.json())
+      .then(({ clientSecret }) => {
+        stripe = Stripe('pk_test_51RTLGdIB4LlFizy67MEzJaNLjWUUuzK0gjjz8cFImGmLnZ4ka468OHpf1dhQg7b25Hm180PfPh16BPEhVwq9Wcu100563RRNWV');
+
+        const appearance = { theme: 'flat' };
+        const options = {
+          clientSecret: clientSecret,
+          appearance: appearance
+        };
+
+        elements = stripe.elements(options);
+        paymentElement = elements.create('payment');
+        paymentElement.mount('#payment-element');
+      });
+
+    const form = document.getElementById('payment-form');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      document.getElementById('submit').disabled = true;
+
+      const { error } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: window.location.origin + '/success'
+        },
+      });
+
+      if (error) {
+        document.getElementById('payment-message').textContent = error.message;
+        document.getElementById('submit').disabled = false;
+      }
+    });
+
+</script>
+</body>
+</html>
+{% endblock %}

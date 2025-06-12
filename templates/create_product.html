@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>Create New Product</h2>
+<form method="POST" enctype="multipart/form-data">
+    {{ form.hidden_tag() }}
+    <div>
+      {{ form.name.label }}<br>
+      {{ form.name(size=40) }}
+    </div>
+    <div>
+      {{ form.description.label }}<br>
+      {{ form.description(size=60) }}
+    </div>
+    <div>
+      {{ form.price.label }}<br>
+      {{ form.price() }}
+    </div>
+    <div>
+      {{ form.weight.label }}<br>
+      {{ form.weight() }}
+    </div>
+    <div>
+      {{ form.image.label }}<br>
+      {{ form.image(size=60) }}
+    </div>
+    <button type="submit" class="btn btn-primary mt-2">Create Product</button>
+  </form>
+
+{% endblock %}

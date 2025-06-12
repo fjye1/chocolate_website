@@ -1,0 +1,112 @@
+.gradient-background {
+    background: linear-gradient(300deg, #4c4030, #997b5a,#d4dee9);
+    background-size: 180% 180%;
+    animation: gradient-animation 18s ease infinite;
+    margin: 0;
+    padding: 0;
+  }
+
+  @keyframes gradient-animation {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+.image-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.content {
+  display: flex;
+  align-items: center; /* Vertically center the items */
+  margin-top: 1rem;
+}
+
+.photos {
+  max-width: 80%; /* adjust size as needed */
+  height: auto;
+}
+
+.text {
+  margin-left: 20px; /* Add space between the image and text */
+  flex-grow: 1;
+}
+h1{
+  font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+  justify-content: center;
+  text-align: center;
+  padding: 30;
+}
+h2{
+  font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+  justify-content: center;
+  text-align: center;
+  margin: 30;
+}
+
+p{
+  text-align: center;
+}
+
+.image-container {
+  display: flex;
+  justify-content: center;  /* Horizontally centers the image */
+  align-items: center;      /* Vertically centers the image */
+}
+.circle-img {
+  width: 300px;  /* adjust size as needed */
+  height: 300px; /* adjust to make it square */
+  object-fit: cover; /* ensures the image covers the whole area without distortion */
+  border-radius: 50%; /* makes the image a circle */
+}
+
+.contact-me{
+  text-align: center;
+  justify-content: center;
+  padding: 30px;
+}
+.custom-btn {
+  background-color: #4c4030; /* your custom color */
+  border: none; /* removes the border */
+  color: white; /* text color */
+}
+
+.custom-btn:hover {
+  background-color: #d4dee9; /* hover effect */
+}
+
+a {
+  color: black; /* your custom color */
+  text-decoration: none; /* optional: removes the underline */
+  font-size:xx-large;
+  margin-right: 2rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Custom color for normal links */
+.nav-link {
+  color: #5A7899; /* Custom text color */
+  font-size: 1.2rem; /* Optional: adjust font size */
+}
+
+/* Custom color for active link */
+.nav-link.active {
+  background-color: #ff5733; /* Custom background color for active state */
+  color: white; /* Active link text color */
+}
+
+/* Custom color for links on hover */
+.nav-link:hover {
+  background-color: #e74c3c; /* Custom hover background color */
+  color: white; /* Custom hover text color */
+}
+
+

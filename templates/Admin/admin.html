@@ -1,0 +1,48 @@
+{% extends "Admin/admin_base.html" %}
+{% block title %}Admin Home{% endblock %}
+
+{% block admin_block %}
+
+<!-- Main content area (Unfulfilled Orders + Sales Chart) -->
+<div class="col-md-9">
+    <div class="row">
+        <!-- Unfulfilled Orders -->
+        <div class="container mt-4">
+            <h2>All Orders</h2>
+            <table class="table table-bordered table-hover mt-3">
+                <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>User</th>
+                    <th>Date</th>
+                    <th>Total (£)</th>
+                    <th>Status</th>
+                    <th>Details</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td>{{ order.order_id }}</td>
+                    <td>{{ order.user.name }}</td>
+                    <td>{{ order.order_date.strftime("%Y-%m-%d %H:%M") }}</td>
+                    <td>{{ "%.2f"|format(order.total_amount) }}</td>
+                    <td>{{ order.status }}</td>
+                    <td>
+                        <a href="{{ url_for('admin', order_id=order.order_id) }}"
+                           class="btn btn-sm btn-primary">View</a>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Sales Chart -->
+        <div class="col-md-6">
+            <h3>Weekly Sales (Sample)</h3>
+            <img src="data:image/png;base64,{{ chart }}" class="img-fluid" alt="Sales Chart">
+        </div>
+    </div>
+</div>
+{% endblock %}

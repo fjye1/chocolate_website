@@ -1,0 +1,32 @@
+from flask_wtf import FlaskForm
+from wtforms import StringField, SubmitField, PasswordField, DecimalField, IntegerField
+from wtforms.validators import DataRequired, URL,NumberRange
+from flask_ckeditor import CKEditorField
+from flask_wtf.file import FileField, FileAllowed
+
+
+class RegisterForm(FlaskForm):
+    email = StringField("Email", validators=[DataRequired()])
+    password = PasswordField("Password", validators=[DataRequired()])
+    name = StringField("Name", validators=[DataRequired()])
+    submit = SubmitField("Sign Me Up!")
+
+class LoginForm(FlaskForm):
+    email = StringField("Email", validators=[DataRequired()])
+    password = PasswordField("Password", validators=[DataRequired()])
+    submit = SubmitField("Let Me In!")
+
+class AddAddress(FlaskForm):
+    address = StringField("Street Address", validators=[DataRequired()])
+    city = StringField("City", validators=[DataRequired()])
+    postcode = StringField("Postcode", validators=[DataRequired()])
+    submit = SubmitField("Add address")
+
+##TODO fix the implentation of this properly Create_new_product
+class ProductForm(FlaskForm):
+    name = StringField('Product Name', validators=[DataRequired()])
+    price = DecimalField('Price', validators=[DataRequired()])
+    weight = DecimalField('Weight', validators=[DataRequired()])
+    description = StringField('Description')
+    image = FileField('Product Image', validators=[FileAllowed(['jpg', 'png', 'jpeg'])])
+    submit = SubmitField('Create Product')

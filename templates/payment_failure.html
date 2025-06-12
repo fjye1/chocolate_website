@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container text-center mt-5">
+    <h1 class="text-danger">Payment Failed ❌</h1>
+    <p>Something went wrong with your payment. Please try again.</p>
+    <a href="{{ url_for('cart') }}" class="btn btn-warning mt-3">Return to Cart</a>
+</div>
+{% endblock %}
