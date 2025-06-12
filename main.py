@@ -40,8 +40,9 @@ login_manager.init_app(app)
 bootstrap = Bootstrap5(app)
 
 ckeditor = CKEditor(app)
-
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
+## the section of code below is to link you to the render Database it wont work if you dont have a render database set up
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("RENDER_DATABASE_URL")
+# app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 db = SQLAlchemy(app)
 
 choc_email = os.getenv("CHOC_EMAIL")
