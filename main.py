@@ -224,7 +224,7 @@ def register():
         db.session.commit()
         login_user(new_user)
         return redirect(url_for("home"))
-    return render_template("register.html", form=form)
+    return render_template("Register.html", form=form)
 
 
 @app.route('/login', methods=["GET", "POST"])
