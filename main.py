@@ -97,9 +97,9 @@ class CartItem(db.Model):
 class Address(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    street = db.Column(db.String)
-    city = db.Column(db.String)
-    postcode = db.Column(db.String)
+    street = db.Column(db.String(255))
+    city = db.Column(db.String(100))
+    postcode = db.Column(db.String(20))
     current_address = db.Column(db.Boolean, default=False)
 
 
@@ -138,7 +138,7 @@ class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     price = db.Column(db.Float, nullable=False)
-    description = db.Column(db.String(300))
+    description = db.Column(db.Text)
     image = db.Column(db.String(200))
     weight = db.Column(db.Integer)
     quantity = db.Column(db.Integer, default=0)
