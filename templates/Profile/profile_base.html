@@ -1,28 +1,19 @@
 {% extends "base.html" %}
 {% block content %}
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
 <div class="container mt-4">
     <div class="row">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-3">
-                <div class="list-group">
-                    <a href="{{ url_for('profile') }}" class="list-group-item list-group-item-action">Profile </a>
-                    <a href="{{ url_for('profile_orders') }}" class="list-group-item list-group-item-action">Orders </a>
-                    <a href="{{ url_for('profile_addresses') }}" class="list-group-item list-group-item-action">Addresses </a>
-                    <a href="{{ url_for('logout') }}" class="list-group-item list-group-item-action">Logout</a>
-                </div>
-            </div>
-            <div class="col-md-9">
-                {% block profile_block %}{% endblock %}
+        <!-- Sidebar -->
+        <div class="col-md-3">
+            <div class="list-group">
+                <a href="{{ url_for('profile') }}" class="list-group-item list-group-item-action">Profile</a>
+                <a href="{{ url_for('profile_orders') }}" class="list-group-item list-group-item-action">Orders</a>
+                <a href="{{ url_for('profile_addresses') }}" class="list-group-item list-group-item-action">Addresses</a>
+                <a href="{{ url_for('logout') }}" class="list-group-item list-group-item-action">Logout</a>
             </div>
         </div>
+        <div class="col-md-9">
+            {% block profile_block %}{% endblock %}
+        </div>
     </div>
-</body>
-</html>
+</div>
 {% endblock %}
