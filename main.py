@@ -668,7 +668,7 @@ def admin_settings():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
 
 "https://cococart.in/"
 "https://snackzack.com/"
