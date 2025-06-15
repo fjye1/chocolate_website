@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Search results for "{{ query }}"</h2>
+
+{% if results %}
+<ul class="list-group">
+    {% for product in results %}
+    <li class="list-group-item">
+        <img src="{{ url_for('static', filename=product.image) }}" alt="Product Image"
+             class="card-img-top" height="225"
+             style="width: 100px; height: 100px; object-fit: cover; border-radius: 5px;">
+        <a href="{{ url_for('product_detail', product_id=product.id) }}">{{ product.name }}</a> -
+        £{{ "%.2f"|format(product.price) }}
+        <p>{{ product.description[:100] }}{% if product.description|length > 100 %}...{% endif %}</p>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p>No results found.</p>
+{% endif %}
+
+<a href="{{ url_for('home') }}">Back to home</a>
+{% endblock %}

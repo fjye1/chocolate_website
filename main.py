@@ -193,6 +193,17 @@ def home():
     return render_template("index.html", products=products, admin=admin)
 
 
+@app.route('/search')
+def search():
+    query = request.args.get('q', '').strip()
+    if not query:
+        flash("Please enter a search term.", "warning")
+        return redirect(url_for('home'))
+
+    # Example: search products by name or description (adjust your model)
+    results = Product.query.filter(Product.name.ilike(f'%{query}%')).all()
+
+    return render_template('search_results.html', query=query, results=results)
 @app.route("/product/<int:product_id>")
 def product_detail(product_id):
     product = Product.query.get_or_404(product_id)
@@ -699,7 +710,7 @@ def admin_settings():
 
 
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
 
 "https://cococart.in/"
 "https://snackzack.com/"
