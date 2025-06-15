@@ -1,7 +1,8 @@
 from flask import Flask, render_template, redirect, url_for, flash, request, abort, jsonify, make_response, current_app
 from flask_sqlalchemy import SQLAlchemy
 import csv
-
+from sqlalchemy import extract
+from collections import defaultdict
 import smtplib
 from email.message import EmailMessage
 from xhtml2pdf import pisa
@@ -15,6 +16,7 @@ from flask_login import LoginManager, login_user, current_user, login_required, 
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from sqlalchemy.sql import func
+from sqlalchemy import cast, Date
 from datetime import datetime, timedelta, timezone
 import stripe
 import os, uuid
@@ -428,7 +430,7 @@ def payment_success():
         return redirect(url_for('checkout'))
 
     # Generate order ID (simple version)
-    order_id = f"ORD{int(datetime.utcnow().timestamp())}"
+    order_id = f"ORD{int(datetime.now(timezone.utc).timestamp())}"
 
     # Calculate total
     total_amount = sum(item.product.price * item.quantity for item in cart.items)
@@ -574,24 +576,53 @@ def admin():
     from io import BytesIO
     import base64
     import pandas as pd
+    from collections import defaultdict
+    from sqlalchemy import func, extract
+
+    # Use timezone-aware UTC now
+    one_week_ago = datetime.now(timezone.utc).date() - timedelta(days=6)  # last 7 days including today
+    today = datetime.now(timezone.utc).date()
+
+    # Query: sum sales grouped by date (date only, no time)
+    sales_data = (
+        db.session.query(
+            cast(Orders.created_at, Date).label('date'),
+            func.sum(Orders.total_amount).label('sales')
+        )
+        .filter(cast(Orders.created_at, Date) >= one_week_ago)
+        .filter(cast(Orders.created_at, Date) <= today)
+        .group_by('date')
+        .order_by('date')
+        .all()
+    )
+
+    sales_dict = {date: sales for date, sales in sales_data}
+
+    day_dates = [one_week_ago + timedelta(days=i) for i in range(7)]
+    day_labels = [d.strftime('%d %b') for d in day_dates]  # e.g. 15 Jun
+
+    sales_values = [sales_dict.get(d, 0) for d in day_dates]
+
     df = pd.DataFrame({
-        'Day': ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-        'Sales': [120, 150, 90, 130, 170, 200, 160]
+        'Day': day_labels,
+        'Sales': sales_values
     })
 
-    # Generate sales graph
-    plt.figure(figsize=(6, 3))
+    plt.figure(figsize=(10, 5))
     sns.barplot(data=df, x='Day', y='Sales', color='skyblue')
-    plt.title('Sample Weekly Sales')
-    ####Todo Sample data to simulate the sales column database update needed to get a sales/ orders column
+    plt.xticks(rotation=45)
+    plt.title("Last Week's Sales")
     buf = BytesIO()
     plt.tight_layout()
     plt.savefig(buf, format='png')
     buf.seek(0)
     chart_base64 = base64.b64encode(buf.read()).decode('utf-8')
     plt.close()
+
+    total_sales_last_week = sum(sales_dict.values())
     orders = Orders.query.order_by(Orders.created_at.desc()).all()
-    return render_template('Admin/admin.html', chart=chart_base64, orders=orders)
+
+    return render_template('Admin/admin.html', chart=chart_base64, orders=orders, total=total_sales_last_week)
 
 
 ##TODO DO this properly Create_new_product
