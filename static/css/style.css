@@ -31,6 +31,19 @@ img {
     padding: 10px;
 }
 
+body {
+    overflow-x: hidden;
+}
+
+#mainCarousel {
+    width: 100vw;
+    position: relative;
+    left: 50%;
+    right: 50%;
+    margin-left: -50vw;
+    margin-right: -50vw;
+    box-sizing: border-box;
+}
 
 
 
