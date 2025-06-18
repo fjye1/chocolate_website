@@ -22,7 +22,7 @@
                             style="border: none; background: transparent; padding: 0; outline: none;">
                         <img src="{{ url_for('static', filename='assets/dash-circle.svg') }}" alt="minus"
                              class="img-fluid"
-                             width="24">
+                             width="36">
                     </button>
                     <input type="hidden" name="product_id" value="{{ product.id }}">
                     <input type="number" name="quantity" min="1" value="1" id="quantity-input"
@@ -31,7 +31,7 @@
                             style="border: none; background: transparent; padding: 0; outline: none;">
                         <img src="{{ url_for('static', filename='assets/plus-circle.svg') }}" alt="plus"
                              class="img-fluid"
-                             width="24">
+                             width="36">
                     </button>
                     {% if current_user.is_authenticated %}
                     <form method="POST" action="{{ url_for('add_to_cart', product_id=product.id) }}">

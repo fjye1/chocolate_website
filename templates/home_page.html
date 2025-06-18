@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - Chocolate Shop{% endblock %}
+
+{% block content %}
+<!--<style>-->
+
+
+<!--.full-bleed {-->
+<!--position: relative;-->
+<!--width: 100vw;-->
+<!--left: 45%;-->
+<!--right: 50%;-->
+<!--margin-left: -40vw;-->
+<!--margin-right: -50vw;-->
+<!--padding: 0;-->
+<!--}-->
+
+<!--.poke-img {-->
+<!--width: 30vw;-->
+<!--height: auto;-->
+<!--margin-left: -10vw; /* This pushes it off the screen a bit */-->
+<!--z-index: 1;-->
+<!--}-->
+
+<!--    .product-grid {-->
+<!--      flex: 1;-->
+<!--      padding-left: 2vw; /* space between image and products */-->
+<!--    }-->
+<!--</style>-->
+
+<!--<div class="full-bleed">-->
+<!--    <img src="{{ url_for('static', filename='images/choc_hero_1.png') }}"-->
+<!--         alt="hero_img"-->
+<!--         class="poke-img"/>-->
+
+<!--    <div class="product-grid">-->
+<!--        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 mt-3">-->
+<!--            {% set count = 0 %}-->
+<!--            {% for product in products %}-->
+<!--            {% if product.is_active and count < 4 %}-->
+<!--            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">-->
+<!--                <div class="col">Card 1</div>-->
+<!--            </div>-->
+<!--            {% set count = count + 1 %}-->
+<!--            {% endif %}-->
+<!--            {% endfor %}-->
+<!--        </div>-->
+<!--    </div>-->
+<!--</div>-->
+
+<!--<div class="full-bleed">-->
+<!--    <img src="{{ url_for('static', filename='images/choc_hero_2.png') }}"-->
+<!--         alt="hero_img"-->
+<!--         class="poke-img"/>-->
+<!--    <hr>-->
+<!--</div>-->
+
+<style>
+    .full-bleed-left {
+      position: relative;
+      left: 50%;
+      right: 50%;
+      margin-left: -30vw;
+      margin-right: auto;
+      width: 40vw;
+      max-width: none;
+    }
+
+</style>
+<h1 style="text-align: center;">
+    Welcome to Regal Chocolate
+</h1>
+<h2 style="text-align: center;">
+    Best Sellers
+</h2>
+<div class="container-fluid">
+    <div class="row g-0 align-items-center">
+
+        <!-- Left image column -->
+        <div class="col-12 col-md-4">
+            <img src="{{ url_for('static', filename='images/choc_hero_2.png') }}"
+                 alt="photo"
+                 class="full-bleed-left"
+            >
+        </div>
+
+        <!-- Right product cards -->
+        <div class="col-12 col-md-8 px-3 py-4">
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
+                {% for product in products if product.is_active %}
+                {% if loop.index <= 3 %}
+                <div class="col">
+                    <div class="card h-100">
+                        <a href="{{ url_for('product_detail', product_id=product.id) }}"
+                           style="text-decoration: none; color: inherit;">
+                            <img src="{{ url_for('static', filename=product.image) }}" class="card-img-top"
+                                 alt="Product Image">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ product.name }}</h5>
+
+                                <p class="card-text"><strong>£{{ product.price }}</strong></p>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+<hr>
+<div class="container-fluid">
+    <div class="row g-0 align-items-center">
+
+        <!-- Left image column -->
+        <div class="col-12 col-md-4">
+            <img src="{{ url_for('static', filename='images/choc_hero_1.png') }}"
+                 alt="photo"
+                 class="full-bleed-left"
+            >
+        </div>
+
+        <!-- Right product cards -->
+        <div class="col-12 col-md-8 px-3 py-4">
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
+                {% for product in products if product.is_active %}
+                {% if loop.index <= 3 %}
+                <div class="col">
+                    <div class="card h-100">
+                        <a href="{{ url_for('product_detail', product_id=product.id) }}"
+                           style="text-decoration: none; color: inherit;">
+                            <img src="{{ url_for('static', filename=product.image) }}" class="card-img-top"
+                                 alt="Product Image">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ product.name }}</h5>
+
+                                <p class="card-text"><strong>£{{ product.price }}</strong></p>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+
+
+{% endblock %}
+
+f8f9fa

@@ -58,7 +58,6 @@
     </div>
 </div>
 <div class="container">
-    <!-- TODO: properly fix this implentation of adding a new product Create_new_product -->
     {% if current_user.admin %}
     <div class="pt-3">
         <a href="{{ url_for('create_product') }}" class="btn btn-primary mb-3">

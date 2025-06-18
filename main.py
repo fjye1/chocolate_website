@@ -190,7 +190,7 @@ with app.app_context():
 def home():
     products = Product.query.all()
     admin = current_user.admin if current_user.is_authenticated else False
-    return render_template("index.html", products=products, admin=admin)
+    return render_template("home_page.html", products=products, admin=admin)
 
 
 @app.route('/search')
