@@ -524,10 +524,15 @@ def payment_success():
         )
         db.session.add(order_item)
 
-    # Clear cart
+    # Clear the cart
     for item in cart.items:
         db.session.delete(item)
 
+    # Reduce stock for each ordered product
+    for item in order.items:
+        item.product.quantity -= item.quantity
+
+    # Final commit
     db.session.commit()
 
     # Generate invoice HTML
@@ -748,7 +753,7 @@ def create_product():
 @login_required
 @admin_only
 def admin_products():
-    products = Product.query.order_by(Product.name).all()
+    products = Product.query.order_by(Product.quantity.asc()).all()
     return render_template("Admin/admin_products.html",
                            products=products)
 
