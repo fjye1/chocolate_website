@@ -60,6 +60,7 @@
                 <div class="commenterImage">
                     <img src="{{ comment.user.email | gravatar }}"/>
                 </div>
+
                 <div class="commentText">
                     <div class="commentText">
                         {{ comment.comment | safe }}
@@ -80,7 +81,8 @@
         </ul>
     </div>
 </div>
-{% if current_user.is_authenticated %}
+{% if can_comment %}
+<p><strong>you can only submit one comment, </strong></p>
 <form method="POST">
     {{ form.hidden_tag() }}
 

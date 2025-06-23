@@ -210,8 +210,15 @@ with app.app_context():
 def home():
     products = Product.query.all()
     admin = current_user.admin if current_user.is_authenticated else False
-    return render_template("home_page.html", products=products, admin=admin)
+    random_comments = Comment.query.order_by(func.random()).limit(3).all()
+    products = Product.query.filter_by(is_active=True).all()
+    sorted_products = sorted(products, key=lambda p: p.average_rating(), reverse=True)
 
+    return render_template("home_page.html",
+                           products=products,
+                           admin=admin,
+                           comments=random_comments,
+                           sorted_products=sorted_products)
 
 @app.route('/search')
 def search():
@@ -228,6 +235,18 @@ def search():
 def product_detail(product_id):
     product = Product.query.get_or_404(product_id)
     comment_form = CommentForm()
+    # Check if the user has purchased the product
+    has_purchased = db.session.query(OrderItem).join(Orders).filter(
+        Orders.user_id == current_user.id,
+        OrderItem.product_id == product_id
+    ).first() is not None
+
+    # Check if user already commented
+    already_commented = Comment.query.filter_by(
+        user_id=current_user.id,
+        product_id=product_id
+    ).first() is not None
+    can_comment = has_purchased and not already_commented
     if comment_form.validate_on_submit():
 
         new_comment = Comment(
@@ -240,7 +259,10 @@ def product_detail(product_id):
         db.session.commit()
         return redirect(url_for('product_detail', product_id=product_id))
 
-    return render_template("product_details.html", product=product, form=comment_form)
+    return render_template("product_details.html",
+                           product=product,
+                           form=comment_form,
+                           can_comment=can_comment)
 
 
 @app.route('/register', methods=["GET", "POST"])

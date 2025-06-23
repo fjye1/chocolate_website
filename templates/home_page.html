@@ -50,8 +50,7 @@
         <!-- Right product cards -->
         <div class="col-12 col-md-8 px-3 py-4">
             <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
-                {% for product in products if product.is_active %}
-                {% if loop.index <= 3 %}
+                {% for product in sorted_products[:3] if product.is_active%}
                 <div class="col">
                     <div class="card h-100">
                         <a href="{{ url_for('product_detail', product_id=product.id) }}"
@@ -62,90 +61,88 @@
                                 <h5 class="card-title">{{ product.name }}</h5>
                                 <p><strong>Rating:</strong> {{ product.average_rating() }} ⭐</p>
                                 <p class="card-text"><strong>£{{ product.price }}</strong></p>
+                            </div>
                         </a>
                     </div>
                 </div>
+                {% endfor %}
             </div>
-            {% endif %}
-            {% endfor %}
         </div>
     </div>
-</div>
-<hr>
+    <hr>
 
-<section class="reviews my-5">
-    <h2 class="text-center mb-4">What Our Customers Say</h2>
-    <div class="container">
-        <div class="row g-4">
+    <section class="reviews my-5">
+        <h2 class="text-center mb-4">What Our Customers Say</h2>
+        <div class="container">
+            <div class="row g-4">
 
-            <div class="col-md-4">
-                <blockquote class="blockquote p-4 bg-light rounded shadow-sm position-relative">
-                    <span class="quote-mark">“</span>
-                    <p class="mb-0">This chocolate shop is amazing! The quality and flavor are unmatched.</p>
-                    <footer class="blockquote-footer mt-3">Jane Doe</footer>
-                </blockquote>
+                {% for comment in comments %}
+                <div class="col-md-4">
+                    <blockquote class="blockquote p-4 bg-light rounded shadow-sm position-relative">
+                        <span class="quote-mark">“</span>
+                        <p class="mb-0">{{ comment.comment }}</p>
+
+                        <div class="rating mt-2 mb-1">
+                            {% for i in range(1, 6) %}
+                            {% if i <= comment.rating %}
+                            ⭐
+                            {% else %}
+                            ☆
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+
+                        <footer class="blockquote-footer mt-2">
+                            {{ comment.user.name }} — <cite title="Product">{{ comment.product.name }}</cite>
+                        </footer>
+                    </blockquote>
+                </div>
+                {% endfor %}
+
             </div>
-
-            <div class="col-md-4">
-                <blockquote class="blockquote p-4 bg-light rounded shadow-sm position-relative">
-                    <span class="quote-mark">“</span>
-                    <p class="mb-0">Fast delivery and the packaging was beautiful. Highly recommend!</p>
-                    <footer class="blockquote-footer mt-3">John Smith</footer>
-                </blockquote>
-            </div>
-
-            <div class="col-md-4">
-                <blockquote class="blockquote p-4 bg-light rounded shadow-sm position-relative">
-                    <span class="quote-mark">“</span>
-                    <p class="mb-0">Every bite melts in your mouth. Can't wait to order again.</p>
-                    <footer class="blockquote-footer mt-3">Emily R.</footer>
-                </blockquote>
-            </div>
-
         </div>
-    </div>
-</section>
-<hr>
-<h2 style="text-align: center;">
-    We think you will love
-</h2>
-<div class="container-fluid">
-    <div class="row g-0 align-items-center">
+    </section>
+    <hr>
+    <h2 style="text-align: center;">
+        We think you will love
+    </h2>
+    <div class="container-fluid">
+        <div class="row g-0 align-items-center">
 
-        <!-- Left image column -->
-        <div class="col-12 col-md-4 hide-under-769">
-            <img src="{{ url_for('static', filename='images/choc_hero_1.png') }}"
-                 alt="photo"
-                 class="full-bleed-left"
-            >
-        </div>
+            <!-- Left image column -->
+            <div class="col-12 col-md-4 hide-under-769">
+                <img src="{{ url_for('static', filename='images/choc_hero_1.png') }}"
+                     alt="photo"
+                     class="full-bleed-left"
+                >
+            </div>
 
-        <!-- Right product cards -->
-        <div class="col-12 col-md-8 px-3 py-4">
-            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
-                {% for product in products if product.is_active %}
-                {% if loop.index <= 3 %}
-                <div class="col">
-                    <div class="card h-100">
-                        <a href="{{ url_for('product_detail', product_id=product.id) }}"
-                           style="text-decoration: none; color: inherit;">
-                            <img src="{{ url_for('static', filename=product.image) }}" class="card-img-top"
-                                 alt="Product Image">
-                            <div class="card-body">
-                                <h5 class="card-title">{{ product.name }}</h5>
-                                <p><strong>Rating:</strong> {{ product.average_rating() }} ⭐</p>
-                                <p class="card-text"><strong>£{{ product.price }}</strong></p>
-                        </a>
+            <!-- Right product cards -->
+            <div class="col-12 col-md-8 px-3 py-4">
+                <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
+                    {% for product in products if product.is_active %}
+                    {% if loop.index <= 3 %}
+                    <div class="col">
+                        <div class="card h-100">
+                            <a href="{{ url_for('product_detail', product_id=product.id) }}"
+                               style="text-decoration: none; color: inherit;">
+                                <img src="{{ url_for('static', filename=product.image) }}" class="card-img-top"
+                                     alt="Product Image">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ product.name }}</h5>
+                                    <p><strong>Rating:</strong> {{ product.average_rating() }} ⭐</p>
+                                    <p class="card-text"><strong>£{{ product.price }}</strong></p>
+                            </a>
+                        </div>
                     </div>
                 </div>
+                {% endif %}
+                {% endfor %}
             </div>
-            {% endif %}
-            {% endfor %}
         </div>
     </div>
-</div>
-<hr>
+    <hr>
 
-{% endblock %}
+    {% endblock %}
 
-f8f9fa
+    f8f9fa
