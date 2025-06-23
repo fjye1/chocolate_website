@@ -368,23 +368,32 @@ def add_to_cart():
     product_id = request.form['product_id']
     quantity = int(request.form['quantity'])
 
-    # 1. Find or create the user's active cart (e.g. a cart without an order yet)
+    product = Product.query.get_or_404(product_id)
+
+    # Find or create active cart
     cart = get_user_cart(current_user.id)
     if not cart:
         cart = Cart(user_id=current_user.id, created_at=datetime.now(timezone.utc))
         db.session.add(cart)
-        db.session.commit()  # commit to get cart.id
-    # 2. Check if this product is already in the cart
+        db.session.commit()
+
     cart_item = CartItem.query.filter_by(cart_id=cart.id, product_id=product_id).first()
+
+    current_qty = cart_item.quantity if cart_item else 0
+    new_total_qty = current_qty + quantity
+
+    if new_total_qty > product.quantity:
+        flash(f"Only {product.quantity - current_qty} items left in stock. Please adjust quantity.", "warning")
+        return redirect(request.referrer or url_for('product_detail', product_id=product_id))
+
     if cart_item:
-        # 3a. If it exists, increase quantity
-        cart_item.quantity += quantity
+        cart_item.quantity = new_total_qty
     else:
-        # 3b. Else create a new cart item
         cart_item = CartItem(cart_id=cart.id, product_id=product_id, quantity=quantity)
         db.session.add(cart_item)
+
     db.session.commit()
-    flash(f"Added {quantity} of the product to your cart.")
+    flash(f"Added {quantity} of the product to your cart.", "success")
     return redirect(request.referrer or url_for('cart'))
 
 
@@ -415,12 +424,19 @@ def cart():
 @login_required
 def checkout():
     cart = get_user_cart(current_user.id)
-    if not cart or not cart.items:
-        total = 0
-    else:
-        total = sum(item.product.price * item.quantity for item in cart.items)
-    return render_template('checkout.html', total=total)
 
+    if not cart or not cart.items:
+        flash("Your cart is empty.", "warning")
+        return redirect(url_for('home'))
+
+    # Soft stock check
+    for item in cart.items:
+        if item.quantity > item.product.quantity:
+            flash(f"Not enough stock for '{item.product.name}'. Only {item.product.quantity} left in stock.", "danger")
+            return redirect(url_for('cart'))
+
+    total = sum(item.product.price * item.quantity for item in cart.items)
+    return render_template('checkout.html', total=total)
 
 @app.route('/cart-data')
 @login_required
@@ -531,6 +547,8 @@ def payment_success():
     # Reduce stock for each ordered product
     for item in order.items:
         item.product.quantity -= item.quantity
+        if item.product.quantity <= 0:
+            item.product.is_active = False
 
     # Final commit
     db.session.commit()
