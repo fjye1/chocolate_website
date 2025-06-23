@@ -23,8 +23,6 @@
 <div class="container mt-4">
     <h3>Your Addresses</h3>
 
-    <!-- Address cards layout -->
-
     <div class="row">
         {% for address in current_user.addresses %}
         <div class="col-md-4">
@@ -36,30 +34,42 @@
                         {{ address.postcode }}
                     </p>
                     <form method="POST" action="{{ url_for('set_current_address', address_id=address.id) }}">
-                        <button type="submit" class="btn btn-sm btn-outline-primary"
+                        <button type="submit"
+                                class="btn btn-sm {% if address.current_address %}btn-success{% else %}btn-outline-primary{% endif %}"
                                 {% if address.current_address %} disabled {% endif %}>
-                            {% if address.current_address %}Current{% else %}Make Current{% endif %}
+                            {% if address.current_address %}
+                            Current
+                            {% else %}
+                            Make Current
+                            {% endif %}
                         </button>
                     </form>
-                    {% if address.current_address %}
-                    <span class="badge bg-success">Current</span>
-                    {% endif %}
+                </div>
+                <div>
+                    <form method="POST" action="{{ url_for('delete_address', address_id=address.id) }}"
+                          style="display:inline;">
+                        <div style="display: flex; justify-content: center; margin-top: 10px;">
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
         {% endfor %}
-
-
-        <!-- Repeat card as needed -->
     </div>
-    <div class="card mt-4">
-        <div class="card-body">
-            <h5 class="card-title">Add New Address</h5>
+</div>
 
-            {{render_form(form, novalidate=True, button_map={"submit": "primary"}) }}
 
-        </div>
+<!-- Repeat card as needed -->
+</div>
+<div class="card mt-4">
+    <div class="card-body">
+        <h5 class="card-title">Add New Address</h5>
+
+        {{render_form(form, novalidate=True, button_map={"submit": "primary"}) }}
+
     </div>
+</div>
 </div>
 
 {% endblock %}

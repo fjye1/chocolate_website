@@ -345,6 +345,17 @@ def profile_addresses():
 
     return render_template("Profile/profile_addresses.html", form=form)
 
+@app.route('/profile/address/delete/<int:address_id>', methods=['POST'])
+@login_required
+def delete_address(address_id):
+    address = Address.query.get_or_404(address_id)
+    if address.user_id != current_user.id:
+        flash("You can't delete this address.", "danger")
+        return redirect(url_for('profile_addresses'))
+    db.session.delete(address)
+    db.session.commit()
+    flash("Address deleted.", "success")
+    return redirect(url_for('profile_addresses'))
 
 @app.route('/set-current-address/<int:address_id>', methods=['POST'])
 @login_required
