@@ -1,3 +1,4 @@
+{% from "bootstrap5/form.html" import render_form %}
 {% extends "base.html" %}
 {% block content %}
 <div class="container mt-4">
@@ -5,7 +6,6 @@
         <div class="col-md-6">
             <img src="{{ url_for('static', filename=product.image) }}" class="img-fluid"
                  alt="{{ product.name }}">
-
         </div>
         <div class="col-md-6">
             <h2>{{ product.name }}</h2>
@@ -15,7 +15,7 @@
             <div class="d-flex align-items-center gap-3">
                 <p class="mb-0"><strong>Quantity in Stock:</strong> {{ product.quantity }}</p>
             </div>
-
+            <p><strong>Rating:</strong> {{ product.average_rating() }} ⭐</p>
             <form method="POST" action="/add-to-cart">
                 <div class="d-flex align-items-center gap-2">
                     <button type="button" class="qty-btn minus"
@@ -34,34 +34,85 @@
                              width="36">
                     </button>
                     {% if current_user.is_authenticated %}
-                    <form method="POST" action="{{ url_for('add_to_cart', product_id=product.id) }}">
-                        <button class="btn btn-primary rounded-pill px-3" type="submit"
-                                style="margin-left: 30px; outline: none;">
-                            Add to Cart
-                        </button>
-                    </form>
+                    <button class="btn btn-primary rounded-pill px-3" type="submit"
+                            style="margin-left: 30px; outline: none;">
+                        Add to Cart
+                    </button>
                     {% else %}
                     <a href="{{ url_for('register') }}" class="btn btn-primary rounded-pill px-3"
                        style="margin-left: 30px; outline: none;">
                         Add to Cart
                     </a>
                     {% endif %}
+
+
+                </div>
             </form>
         </div>
     </div>
+
+
+    <div class="comment">
+        <ul class="commentList list-unstyled m-0 p-0">
+            <!-- Show all comments -->
+            {% for comment in product.comments %}
+            <li>
+                <div class="commenterImage">
+                    <img src="{{ comment.user.email | gravatar }}"/>
+                </div>
+                <div class="commentText">
+                    <div class="commentText">
+                        {{ comment.comment | safe }}
+
+                        <div class="rating">
+                            {% for i in range(1, 6) %}
+                            {% if i <= comment.rating %}
+                            ⭐
+                            {% else %}
+                            ☆
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+
+                        <span class="sub-text">{{ comment.user.name }}</span>
+                    </div>
+                    {% endfor %}
+        </ul>
+    </div>
 </div>
-</div>
+{% if current_user.is_authenticated %}
+<form method="POST">
+    {{ form.hidden_tag() }}
+
+    <label for="rating">Rating:</label>
+    <input type="range" id="rating" name="rating" min="1" max="5" value="3" oninput="updateStars(this.value)">
+
+    <div id="stars" class="star-display">⭐⭐⭐☆☆</div>
+
+    {{ form.comment_text.label }}
+    {{ form.comment_text(class="form-control") }}
+
+    <button type="submit" class="btn btn-primary mt-2">Submit</button>
+</form>
+{% endif %}
+
 <script>
+
+    function updateStars(value) {
+  const fullStars = '⭐'.repeat(value);
+  const emptyStars = '☆'.repeat(5 - value);
+  document.getElementById('stars').textContent = fullStars + emptyStars;
+}
     document.querySelector('.qty-btn.minus').addEventListener('click', () => {
-      const input = document.getElementById('quantity-input');
-      let value = parseInt(input.value);
-      if (value > 1) input.value = value - 1;
+        const input = document.getElementById('quantity-input');
+        let value = parseInt(input.value);
+        if (value > 1) input.value = value - 1;
     });
 
     document.querySelector('.qty-btn.plus').addEventListener('click', () => {
-      const input = document.getElementById('quantity-input');
-      let value = parseInt(input.value);
-      input.value = value + 1;
+        const input = document.getElementById('quantity-input');
+        let value = parseInt(input.value);
+        input.value = value + 1;
     });
 </script>
 

@@ -30,3 +30,8 @@ class ProductForm(FlaskForm):
     description = StringField('Description')
     image = FileField('Product Image', validators=[FileAllowed(['jpg', 'png', 'jpeg'])])
     submit = SubmitField('Create Product')
+
+class CommentForm(FlaskForm):
+    comment_text = CKEditorField("Comment", validators=[DataRequired()])
+    rating = IntegerField('Rating', validators=[NumberRange(min=1, max=5)])
+    submit = SubmitField("Submit Comment")

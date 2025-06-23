@@ -11,7 +11,7 @@ from email.message import EmailMessage
 from flask_gravatar import Gravatar
 from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
-from forms import RegisterForm, LoginForm, AddAddress, ProductForm
+from forms import RegisterForm, LoginForm, AddAddress, ProductForm, CommentForm
 from flask_login import LoginManager, login_user, current_user, login_required, logout_user, UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
@@ -43,8 +43,11 @@ bootstrap = Bootstrap5(app)
 
 ckeditor = CKEditor(app)
 ## the section of code below is to link you to the render Database it wont work if you dont have a render database set up
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("RENDER_DATABASE_URL")
-# app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
+## main branch
+# app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("RENDER_DATABASE_URL")
+## this is the local database for app developement only use if in offline_db branch
+#offline_db Branch
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 db = SQLAlchemy(app)
 
 choc_email = os.getenv("CHOC_EMAIL")
@@ -112,18 +115,12 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
     addresses = db.relationship('Address', backref='user', lazy=True)  # one-to-many
+    comments = db.relationship('Comment', backref='user', lazy=True)
+    carts = db.relationship('Cart', backref='user', lazy=True)
 
     @property
     def current_address(self):
         return next((a for a in self.addresses if a.current_address), None)
-
-class Comments(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('User.id'))
-    product_id = db.Column(db.Integer, db.ForeignKey('Product.id'))
-    comment = db.Column(db.String(120), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
 
 class Orders(db.Model):
     order_id = db.Column(db.String(20), primary_key=True)
@@ -152,6 +149,12 @@ class Product(db.Model):
     weight = db.Column(db.Integer)
     quantity = db.Column(db.Integer, default=0)
     is_active = db.Column(db.Boolean, default=True)
+    comments = db.relationship('Comment', backref='product', lazy=True)
+
+    def average_rating(self):
+        avg = db.session.query(func.avg(Comment.rating)) \
+            .filter(Comment.product_id == self.id).scalar()
+        return round(avg or 0, 1)
 
 
 class OrderItem(db.Model):
@@ -163,6 +166,16 @@ class OrderItem(db.Model):
 
     product = db.relationship('Product', backref='order_items')
     order = db.relationship('Orders', backref='items')
+
+class Comment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    comment = db.Column(db.String(120), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    rating = db.Column(db.Integer, nullable=True)
+
+
 
 
 # ✅ must be run before adding data
@@ -211,10 +224,23 @@ def search():
     results = Product.query.filter(Product.name.ilike(f'%{query}%')).all()
 
     return render_template('search_results.html', query=query, results=results)
-@app.route("/product/<int:product_id>")
+@app.route("/product/<int:product_id>", methods=["GET", "POST"])
 def product_detail(product_id):
     product = Product.query.get_or_404(product_id)
-    return render_template("product_details.html", product=product)
+    comment_form = CommentForm()
+    if comment_form.validate_on_submit():
+
+        new_comment = Comment(
+            user_id =current_user.id,
+            product_id=product_id,
+            comment=comment_form.comment_text.data,
+            rating=comment_form.rating.data
+        )
+        db.session.add(new_comment)
+        db.session.commit()
+        return redirect(url_for('product_detail', product_id=product_id))
+
+    return render_template("product_details.html", product=product, form=comment_form)
 
 
 @app.route('/register', methods=["GET", "POST"])

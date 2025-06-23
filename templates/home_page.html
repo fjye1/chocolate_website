@@ -60,7 +60,7 @@
                                  alt="Product Image">
                             <div class="card-body">
                                 <h5 class="card-title">{{ product.name }}</h5>
-
+                                <p><strong>Rating:</strong> {{ product.average_rating() }} ⭐</p>
                                 <p class="card-text"><strong>£{{ product.price }}</strong></p>
                         </a>
                     </div>
@@ -133,7 +133,7 @@
                                  alt="Product Image">
                             <div class="card-body">
                                 <h5 class="card-title">{{ product.name }}</h5>
-
+                                <p><strong>Rating:</strong> {{ product.average_rating() }} ⭐</p>
                                 <p class="card-text"><strong>£{{ product.price }}</strong></p>
                         </a>
                     </div>

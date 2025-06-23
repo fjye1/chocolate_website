@@ -52,4 +52,42 @@ body {
 }
 
 
+/* comment section css pulled from the training exersises i did */
+.comment {
+  padding-top: 20px;
+}
+.commentList {
+  padding:0;
+  list-style:none;
+  max-height:200px;
+  overflow:auto;
+}
+.commentList li {
+  margin:0;
+  margin-top:10px;
+}
+.commentList li > div {
+  display:table-cell;
+}
+.commenterImage {
+  width:50px;
+  margin-right:5px;
+  height:100%;
+  ;
+}
+.commenterImage img {
+  width:100%;
+  border-radius:50%;
+}
+.commentText p {
+  margin:0;
+}
+
+.sub-text {
+    color:#aaa;
+    font-family:verdana;
+    font-size:13px;
+}
+
+
 
