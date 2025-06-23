@@ -318,7 +318,9 @@ def profile():
 
 @app.route('/profile/orders')
 def profile_orders():
-    return render_template("Profile/profile_orders.html")
+    orders = Orders.query.filter_by(user_id=current_user.id).order_by(Orders.created_at.desc()).all()
+    return render_template("Profile/profile_orders.html",
+                           orders=orders)
 
 
 @app.route('/profile/address', methods=["GET", "POST"])
