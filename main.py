@@ -29,9 +29,6 @@ load_dotenv()
 # "CreatePostForm, CommentForm, ProductForm"
 
 
-
-
-
 login_manager = LoginManager()
 
 app = Flask(__name__)
@@ -42,11 +39,11 @@ login_manager.init_app(app)
 bootstrap = Bootstrap5(app)
 
 ckeditor = CKEditor(app)
-## the section of code below is to link you to the render Database it wont work if you dont have a render database set up
-## main branch
+# TODO the section of code below is to link you to the render Database it wont work if you dont have a render database set up
 # app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("RENDER_DATABASE_URL")
+
 ## this is the local database for app developement only use if in offline_db branch
-#offline_db Branch
+
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 db = SQLAlchemy(app)
 
@@ -54,8 +51,10 @@ choc_email = os.getenv("CHOC_EMAIL")
 
 choc_password = os.getenv("CHOC_PASSWORD")
 
+
 def get_user_cart(user_id):
     return Cart.query.filter_by(user_id=user_id).first()
+
 
 def admin_only(f):
     @wraps(f)
@@ -122,6 +121,7 @@ class User(db.Model, UserMixin):
     def current_address(self):
         return next((a for a in self.addresses if a.current_address), None)
 
+
 class Orders(db.Model):
     order_id = db.Column(db.String(20), primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -167,6 +167,7 @@ class OrderItem(db.Model):
     product = db.relationship('Product', backref='order_items')
     order = db.relationship('Orders', backref='items')
 
+
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -174,8 +175,6 @@ class Comment(db.Model):
     comment = db.Column(db.String(120), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     rating = db.Column(db.Integer, nullable=True)
-
-
 
 
 # ✅ must be run before adding data
@@ -220,6 +219,7 @@ def home():
                            comments=random_comments,
                            sorted_products=sorted_products)
 
+
 @app.route('/search')
 def search():
     query = request.args.get('q', '').strip()
@@ -231,6 +231,8 @@ def search():
     results = Product.query.filter(Product.name.ilike(f'%{query}%')).all()
 
     return render_template('search_results.html', query=query, results=results)
+
+
 @app.route("/product/<int:product_id>", methods=["GET", "POST"])
 def product_detail(product_id):
     product = Product.query.get_or_404(product_id)
@@ -248,9 +250,8 @@ def product_detail(product_id):
     ).first() is not None
     can_comment = has_purchased and not already_commented
     if comment_form.validate_on_submit():
-
         new_comment = Comment(
-            user_id =current_user.id,
+            user_id=current_user.id,
             product_id=product_id,
             comment=comment_form.comment_text.data,
             rating=comment_form.rating.data
@@ -649,20 +650,35 @@ def admin():
     one_week_ago = datetime.now(timezone.utc).date() - timedelta(days=6)  # last 7 days including today
     today = datetime.now(timezone.utc).date()
 
-    # Query: sum sales grouped by date (date only, no time)
+    # TODO this section is for the render database(Postgres) it will not work on local
+    # sales_data = (
+    #     db.session.query(
+    #         cast(Orders.created_at, Date).label('date'),
+    #         func.sum(Orders.total_amount).label('sales')
+    #     )
+    #     .filter(cast(Orders.created_at, Date) >= one_week_ago)
+    #     .filter(cast(Orders.created_at, Date) <= today)
+    #     .group_by('date')
+    #     .order_by('date')
+    #     .all()
+    # )
+    ## TODO this section is for local database(SQLite) it will not work on render
     sales_data = (
         db.session.query(
-            cast(Orders.created_at, Date).label('date'),
-            func.sum(Orders.total_amount).label('sales')
+            func.date(Orders.created_at).label("date"),  # ← this works better than cast
+            func.sum(Orders.total_amount).label("sales")
         )
-        .filter(cast(Orders.created_at, Date) >= one_week_ago)
-        .filter(cast(Orders.created_at, Date) <= today)
-        .group_by('date')
-        .order_by('date')
+        .filter(func.date(Orders.created_at) >= one_week_ago)
+        .filter(func.date(Orders.created_at) <= today)
+        .group_by(func.date(Orders.created_at))
+        .order_by(func.date(Orders.created_at))
         .all()
     )
 
-    sales_dict = {date: sales for date, sales in sales_data}
+    sales_dict = {
+        datetime.strptime(date_str, '%Y-%m-%d').date(): sales
+        for date_str, sales in sales_data
+    }
 
     day_dates = [one_week_ago + timedelta(days=i) for i in range(7)]
     day_labels = [d.strftime('%d %b') for d in day_dates]  # e.g. 15 Jun
@@ -673,7 +689,6 @@ def admin():
         'Day': day_labels,
         'Sales': sales_values
     })
-
     plt.figure(figsize=(10, 5))
     sns.barplot(data=df, x='Day', y='Sales', color='skyblue')
     plt.xticks(rotation=45)
@@ -685,7 +700,7 @@ def admin():
     chart_base64 = base64.b64encode(buf.read()).decode('utf-8')
     plt.close()
 
-    total_sales_last_week = sum(sales_dict.values())
+    total_sales_last_week = sum(s or 0 for s in sales_dict.values())
     orders = Orders.query.order_by(Orders.created_at.desc()).all()
 
     return render_template('Admin/admin.html', chart=chart_base64, orders=orders, total=total_sales_last_week)
@@ -733,7 +748,20 @@ def create_product():
 @login_required
 @admin_only
 def admin_products():
-    return render_template("Admin/admin_products.html")
+    products = Product.query.order_by(Product.name).all()
+    return render_template("Admin/admin_products.html",
+                           products=products)
+
+
+@app.route('/admin/activate/<int:product_id>', methods=["POST"])
+@login_required
+@admin_only
+def activate_product(product_id):
+    product = Product.query.get_or_404(product_id)
+    product.is_active = True
+    db.session.commit()
+    flash(f"Product '{product.name}' activated.", "success")
+    return redirect(request.referrer or url_for('admin_products'))
 
 
 @app.route('/admin/users')

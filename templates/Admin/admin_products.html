@@ -3,20 +3,84 @@
 
 {% block admin_block %}
 
-        <!-- Main content area (Unfulfilled Orders + Sales Chart) -->
-        <div class="col-md-9">
-            <div class="row">
-                <!-- Unfulfilled Orders -->
-                <div class="col-md-6">
-                    <h3>Unfulfilled Orders</h3>
-                    <p>No unfulfilled orders.</p>
+<h2>All Products</h2>
+<table class="table table-striped">
+    <thead>
+    <tr>
+        <th>Image</th>
+        <th>Name</th>
+        <th>Price</th>
+        <th>Active</th>
+        <th>Quantity</th>
+        <th>Actions</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for product in products %}
+    <tr>
+        <td><img src="{{ url_for('static', filename=product.image) }}" width="50"></td>
+        <td>{{ product.name }}</td>
+        <td>£{{ "%.2f"|format(product.price) }}</td>
+        <td>{{ "Yes" if product.is_active else "No" }}</td>
+        <td>{{ product.quantity }}</td>
+        <td>
+            <div class="d-flex gap-2 align-items-center">
+                <a href="{{ url_for('product_detail', product_id=product.id) }}" class="btn btn-sm btn-info">View</a>
+                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal"
+                        data-bs-target="#deleteModal{{ product.id }}">
+                    🗑️
+                </button>
+                <div class="modal fade" id="deleteModal{{ product.id }}" tabindex="-1"
+                     aria-labelledby="deleteModalLabel{{ product.id }}" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="deleteModalLabel{{ product.id }}">
+                                    Delete Product: {{ product.name }}
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                        aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                {% if product.order_items|length > 0 %}
+                                <p>This product has been ordered before.</p>
+                                <p>You can only soft delete (hide) it.</p>
+                                {% else %}
+                                <p>This product has no order history.</p>
+                                <p>You can hard delete (permanently remove) or soft delete it.</p>
+                                {% endif %}
+                            </div>
+                            <div class="modal-footer">
+                                {% if product.order_items|length == 0 %}
+                                <form method="POST"
+                                      action="{{ url_for('hard_delete_product', product_id=product.id) }}">
+                                    <button type="submit" class="btn btn-danger">Hard Delete</button>
+                                </form>
+                                {% endif %}
+                                <form method="POST"
+                                      action="{{ url_for('soft_delete_product', product_id=product.id) }}">
+                                    <button type="submit" class="btn btn-warning">Soft Delete</button>
+                                </form>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-
-                <!-- Sales Chart -->
-                <div class="col-md-6">
-                    <h3>Weekly Sales (Sample)</h3>
-                    <img src="data:image/png;base64,{{ chart }}" class="img-fluid" alt="Sales Chart">
+                {% if not product.is_active %}
+                <div class="m-0 p-0">
+                    <form method="POST" action="{{ url_for('activate_product', product_id=product.id) }}" class="mb-0">
+                        <button type="submit" class="btn btn-success btn-sm">Activate</button>
+                    </form>
                 </div>
+                {% endif %}
             </div>
-        </div>
-    {% endblock %}
+        <td>
+
+
+        </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
