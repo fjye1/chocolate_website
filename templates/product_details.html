@@ -44,6 +44,51 @@
                         Add to Cart
                     </a>
                     {% endif %}
+                    {% if current_user.admin %}
+                    <button type="button" class="btn btn-danger btn-sm mt-3" data-bs-toggle="modal"
+                            data-bs-target="#deleteModal{{ product.id }}">
+                        🗑️
+                    </button>
+                    {% endif %}
+                    {% if current_user.admin %}
+                    <div class="modal fade" id="deleteModal{{ product.id }}" tabindex="-1"
+                         aria-labelledby="deleteModalLabel{{ product.id }}" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="deleteModalLabel{{ product.id }}">
+                                        Delete Product: {{ product.name }}
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                            aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    {% if product.order_items|length > 0 %}
+                                    <p>This product has been ordered before.</p>
+                                    <p>You can only soft delete (hide) it.</p>
+                                    {% else %}
+                                    <p>This product has no order history.</p>
+                                    <p>You can hard delete (permanently remove) or soft delete it.</p>
+                                    {% endif %}
+                                </div>
+                                <div class="modal-footer">
+                                    {% if product.order_items|length == 0 %}
+                                    <form method="POST"
+                                          action="{{ url_for('hard_delete_product', product_id=product.id) }}">
+                                        <button type="submit" class="btn btn-danger">Hard Delete</button>
+                                    </form>
+                                    {% endif %}
+                                    <form method="POST"
+                                          action="{{ url_for('soft_delete_product', product_id=product.id) }}">
+                                        <button type="submit" class="btn btn-warning">Soft Delete</button>
+                                    </form>
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
 
 
                 </div>
@@ -97,6 +142,7 @@
     <button type="submit" class="btn btn-primary mt-2">Submit</button>
 </form>
 {% endif %}
+
 
 <script>
 
