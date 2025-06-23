@@ -12,8 +12,8 @@ class RegisterForm(FlaskForm):
     submit = SubmitField("Sign Me Up!")
 
 class LoginForm(FlaskForm):
-    email = StringField("Email", validators=[DataRequired()])
-    password = PasswordField("Password", validators=[DataRequired()])
+    email = StringField("Email", validators=[DataRequired()], render_kw={"autocomplete": "username"})
+    password = PasswordField("Password", validators=[DataRequired()],render_kw={"autocomplete": "current-password"})
     submit = SubmitField("Let Me In!")
 
 class AddAddress(FlaskForm):

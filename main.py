@@ -117,6 +117,13 @@ class User(db.Model, UserMixin):
     def current_address(self):
         return next((a for a in self.addresses if a.current_address), None)
 
+class Comments(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('User.id'))
+    product_id = db.Column(db.Integer, db.ForeignKey('Product.id'))
+    comment = db.Column(db.String(120), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 
 class Orders(db.Model):
     order_id = db.Column(db.String(20), primary_key=True)

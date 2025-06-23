@@ -45,7 +45,11 @@ body {
     box-sizing: border-box;
 }
 
-
+@media (max-width: 769px) {
+  .hide-under-769 {
+    display: none !important;
+  }
+}
 
 
 

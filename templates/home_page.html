@@ -3,71 +3,33 @@
 {% block title %}Home - Chocolate Shop{% endblock %}
 
 {% block content %}
-<!--<style>-->
-
-
-<!--.full-bleed {-->
-<!--position: relative;-->
-<!--width: 100vw;-->
-<!--left: 45%;-->
-<!--right: 50%;-->
-<!--margin-left: -40vw;-->
-<!--margin-right: -50vw;-->
-<!--padding: 0;-->
-<!--}-->
-
-<!--.poke-img {-->
-<!--width: 30vw;-->
-<!--height: auto;-->
-<!--margin-left: -10vw; /* This pushes it off the screen a bit */-->
-<!--z-index: 1;-->
-<!--}-->
-
-<!--    .product-grid {-->
-<!--      flex: 1;-->
-<!--      padding-left: 2vw; /* space between image and products */-->
-<!--    }-->
-<!--</style>-->
-
-<!--<div class="full-bleed">-->
-<!--    <img src="{{ url_for('static', filename='images/choc_hero_1.png') }}"-->
-<!--         alt="hero_img"-->
-<!--         class="poke-img"/>-->
-
-<!--    <div class="product-grid">-->
-<!--        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 mt-3">-->
-<!--            {% set count = 0 %}-->
-<!--            {% for product in products %}-->
-<!--            {% if product.is_active and count < 4 %}-->
-<!--            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">-->
-<!--                <div class="col">Card 1</div>-->
-<!--            </div>-->
-<!--            {% set count = count + 1 %}-->
-<!--            {% endif %}-->
-<!--            {% endfor %}-->
-<!--        </div>-->
-<!--    </div>-->
-<!--</div>-->
-
-<!--<div class="full-bleed">-->
-<!--    <img src="{{ url_for('static', filename='images/choc_hero_2.png') }}"-->
-<!--         alt="hero_img"-->
-<!--         class="poke-img"/>-->
-<!--    <hr>-->
-<!--</div>-->
-
 <style>
     .full-bleed-left {
-      position: relative;
-      left: 50%;
-      right: 50%;
-      margin-left: -30vw;
-      margin-right: auto;
-      width: 40vw;
-      max-width: none;
+          position: relative;
+          left: 50%;
+          right: 50%;
+          margin-left: -30vw;
+          margin-right: auto;
+          width: 40vw;
+          max-width: none;
+          }
+    .quote-mark {
+      font-size: 4rem;
+      color: #d2691e; /* chocolate brown */
+      position: absolute;
+      top: 10px;
+      left: 15px;
+      font-family: serif;
+      opacity: 0.2;
+      user-select: none;
+      pointer-events: none;
     }
-
+    .blockquote {
+      position: relative;
+      padding-left: 3rem !important;
+    }
 </style>
+
 <h1 style="text-align: center;">
     Welcome to Regal Chocolate
 </h1>
@@ -78,7 +40,7 @@
     <div class="row g-0 align-items-center">
 
         <!-- Left image column -->
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-4 hide-under-769">
             <img src="{{ url_for('static', filename='images/choc_hero_2.png') }}"
                  alt="photo"
                  class="full-bleed-left"
@@ -110,11 +72,48 @@
     </div>
 </div>
 <hr>
+
+<section class="reviews my-5">
+    <h2 class="text-center mb-4">What Our Customers Say</h2>
+    <div class="container">
+        <div class="row g-4">
+
+            <div class="col-md-4">
+                <blockquote class="blockquote p-4 bg-light rounded shadow-sm position-relative">
+                    <span class="quote-mark">“</span>
+                    <p class="mb-0">This chocolate shop is amazing! The quality and flavor are unmatched.</p>
+                    <footer class="blockquote-footer mt-3">Jane Doe</footer>
+                </blockquote>
+            </div>
+
+            <div class="col-md-4">
+                <blockquote class="blockquote p-4 bg-light rounded shadow-sm position-relative">
+                    <span class="quote-mark">“</span>
+                    <p class="mb-0">Fast delivery and the packaging was beautiful. Highly recommend!</p>
+                    <footer class="blockquote-footer mt-3">John Smith</footer>
+                </blockquote>
+            </div>
+
+            <div class="col-md-4">
+                <blockquote class="blockquote p-4 bg-light rounded shadow-sm position-relative">
+                    <span class="quote-mark">“</span>
+                    <p class="mb-0">Every bite melts in your mouth. Can't wait to order again.</p>
+                    <footer class="blockquote-footer mt-3">Emily R.</footer>
+                </blockquote>
+            </div>
+
+        </div>
+    </div>
+</section>
+<hr>
+<h2 style="text-align: center;">
+    We think you will love
+</h2>
 <div class="container-fluid">
     <div class="row g-0 align-items-center">
 
         <!-- Left image column -->
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-4 hide-under-769">
             <img src="{{ url_for('static', filename='images/choc_hero_1.png') }}"
                  alt="photo"
                  class="full-bleed-left"
@@ -145,8 +144,7 @@
         </div>
     </div>
 </div>
-
-
+<hr>
 
 {% endblock %}
 
