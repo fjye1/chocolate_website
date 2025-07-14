@@ -3,20 +3,30 @@
 
 {% block admin_block %}
 
-        <!-- Main content area (Unfulfilled Orders + Sales Chart) -->
-        <div class="col-md-9">
-            <div class="row">
-                <!-- Unfulfilled Orders -->
-                <div class="col-md-6">
-                    <h3>Unfulfilled Orders</h3>
-                    <p>No unfulfilled orders.</p>
-                </div>
-
-                <!-- Sales Chart -->
-                <div class="col-md-6">
-                    <h3>Weekly Sales (Sample)</h3>
-                    <img src="data:image/png;base64,{{ chart }}" class="img-fluid" alt="Sales Chart">
-                </div>
-            </div>
+<!-- Main content area (Unfulfilled Orders + Sales Chart) -->
+<div class="container mt-4">
+            <h2>All Users</h2>
+            <table class="table table-bordered table-hover mt-3">
+                <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Address</th>
+                    <th>Total lifetime spend(£)</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for result in results %}
+                <tr>
+                    <td>{{ result.name }}</td>
+                    <td>{{ result.email }}</td>
+                    <td>{{ result.address }}</td>
+                    <td>{{ "%.2f"|format(result.total_orders) }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
         </div>
-    {% endblock %}
+
+
+{% endblock %}

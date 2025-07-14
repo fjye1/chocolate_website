@@ -1,7 +1,7 @@
 from flask import Flask, render_template, redirect, url_for, flash, request, abort, jsonify, make_response, current_app
 from flask_sqlalchemy import SQLAlchemy
 import csv
-from sqlalchemy import extract
+from sqlalchemy import extract, label
 from collections import defaultdict
 import smtplib
 from email.message import EmailMessage
@@ -12,7 +12,7 @@ from flask_gravatar import Gravatar
 from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
 from forms import RegisterForm, LoginForm, AddAddress, ProductForm, CommentForm
-from flask_login import LoginManager, login_user, current_user, login_required, logout_user, UserMixin
+from flask_login import LoginManager, login_user, current_user, login_required, logout_user, UserMixin,AnonymousUserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from sqlalchemy.sql import func
@@ -237,19 +237,25 @@ def search():
 def product_detail(product_id):
     product = Product.query.get_or_404(product_id)
     comment_form = CommentForm()
-    # Check if the user has purchased the product
-    has_purchased = db.session.query(OrderItem).join(Orders).filter(
-        Orders.user_id == current_user.id,
-        OrderItem.product_id == product_id
-    ).first() is not None
 
-    # Check if user already commented
-    already_commented = Comment.query.filter_by(
-        user_id=current_user.id,
-        product_id=product_id
-    ).first() is not None
-    can_comment = has_purchased and not already_commented
-    if comment_form.validate_on_submit():
+    if isinstance(current_user, AnonymousUserMixin):
+        has_purchased = False
+        already_commented = False
+        can_comment = False
+    else:
+        has_purchased = db.session.query(OrderItem).join(Orders).filter(
+            Orders.user_id == current_user.id,
+            OrderItem.product_id == product_id
+        ).first() is not None
+
+        already_commented = Comment.query.filter_by(
+            user_id=current_user.id,
+            product_id=product_id
+        ).first() is not None
+
+        can_comment = has_purchased and not already_commented
+
+    if comment_form.validate_on_submit() and can_comment:
         new_comment = Comment(
             user_id=current_user.id,
             product_id=product_id,
@@ -742,7 +748,7 @@ def admin():
     return render_template('Admin/admin.html', chart=chart_base64, orders=orders, total=total_sales_last_week)
 
 
-##TODO DO this properly Create_new_product
+
 @app.route('/create-product', methods=['GET', 'POST'])
 @login_required
 @admin_only
@@ -804,7 +810,22 @@ def activate_product(product_id):
 @login_required
 @admin_only
 def admin_users():
-    return render_template("Admin/admin_users.html")
+    total_orders = func.coalesce(func.sum(Orders.total_amount), 0).label('total_orders')
+    address = (Address.street + ', ' + Address.city + ', ' + Address.postcode).label('address')
+    query = (
+        db.session.query(
+            User.name,
+            User.email,
+            address,
+            total_orders
+        )
+        .outerjoin(Orders, User.id == Orders.user_id)
+        .outerjoin(Address, (User.id == Address.user_id) & (Address.current_address == True))
+        .group_by(User.id)
+        .order_by(total_orders.desc())
+    )
+    results = query.all()
+    return render_template("Admin/admin_users.html",results = results)
 
 
 @app.route('/admin/reports')
