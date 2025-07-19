@@ -33,17 +33,12 @@
                              class="img-fluid"
                              width="36">
                     </button>
-                    {% if current_user.is_authenticated %}
+
                     <button class="btn btn-primary rounded-pill px-3" type="submit"
                             style="margin-left: 30px; outline: none;">
                         Add to Cart
                     </button>
-                    {% else %}
-                    <a href="{{ url_for('register') }}" class="btn btn-primary rounded-pill px-3"
-                       style="margin-left: 30px; outline: none;">
-                        Add to Cart
-                    </a>
-                    {% endif %}
+
 
                 </div>
             </form>

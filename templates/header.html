@@ -68,15 +68,14 @@
                     {% endif %}
                     <li><a href="{{ url_for('home') }}" class="nav-link px-2 link-body-emphasis">Home</a></li>
                     <li><a href="#" class="nav-link px-2 link-body-emphasis">Products</a></li>
-                    {% if current_user.is_authenticated %}
-                    <li><a href="{{ url_for('cart') }}" class="nav-link px-2 link-body-emphasis">Cart</a></li>
-                    {% endif %}
+
                 </ul>
             </div>
 
             <!-- 🔶 Centered logo -->
             <div class="center-logo">
-                <img src="{{ url_for('static', filename='images/designs_first_draft.png') }}" alt="Site Logo" width="200" height="200">
+                <img src="{{ url_for('static', filename='images/designs_first_draft.png') }}" alt="Site Logo"
+                     width="200" height="200">
             </div>
 
             <!-- Right section -->
@@ -84,6 +83,12 @@
                 <form role="search" action="{{ url_for('search') }}" method="GET">
                     <input type="search" name="q" class="form-control" placeholder="Search..." aria-label="Search">
                 </form>
+
+                <a href="{{ url_for('cart') }}" class="nav-link px-2 link-body-emphasis">
+                    <img src="{{ url_for('static', filename='images/cart.svg') }}" alt="Cart" width="50">
+                </a>
+
+
 
                 {% if current_user.is_authenticated %}
                 <div class="dropdown">
@@ -93,6 +98,7 @@
                              class="rounded-circle">
                     </a>
                     <ul class="dropdown-menu text-small">
+
                         <li><a class="dropdown-item" href="{{url_for('profile')}}">Profile</a></li>
                         <li>
                             <hr class="dropdown-divider">

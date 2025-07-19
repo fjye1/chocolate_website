@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, flash, request, abort, jsonify, make_response, current_app
+from flask import Flask, render_template, redirect, url_for, flash, request, abort, jsonify, make_response, current_app,session
 from flask_sqlalchemy import SQLAlchemy
 import csv
 from sqlalchemy import extract, label
@@ -280,7 +280,6 @@ def register():
         result = db.session.execute(db.select(User).where(User.email == form.email.data))
         user = result.scalar()
         if user:
-            # User already exists
             flash("You've already signed up with that email, log in instead!")
             return redirect(url_for('login'))
 
@@ -293,11 +292,30 @@ def register():
             email=form.email.data,
             name=form.name.data,
             password=hash_and_salted_password,
-
         )
         db.session.add(new_user)
         db.session.commit()
+
         login_user(new_user)
+
+        # ✅ Merge guest basket into DB cart
+        basket = session.get('basket', [])
+        if basket:
+            cart = get_user_cart(new_user.id)
+            if not cart:
+                cart = Cart(user_id=new_user.id, created_at=datetime.now(timezone.utc))
+                db.session.add(cart)
+                db.session.commit()
+            for b in basket:
+                existing_item = CartItem.query.filter_by(cart_id=cart.id, product_id=b['product_id']).first()
+                if existing_item:
+                    existing_item.quantity += b['quantity']
+                else:
+                    new_item = CartItem(cart_id=cart.id, product_id=b['product_id'], quantity=b['quantity'])
+                    db.session.add(new_item)
+            db.session.commit()
+            session.pop('basket', None)
+
         return redirect(url_for("home"))
     return render_template("Register.html", form=form)
 
@@ -382,36 +400,63 @@ def set_current_address(address_id):
 
 
 @app.route('/add-to-cart', methods=['POST'])
-@login_required
 def add_to_cart():
-    product_id = request.form['product_id']
+    product_id = int(request.form['product_id'])
     quantity = int(request.form['quantity'])
 
     product = Product.query.get_or_404(product_id)
 
-    # Find or create active cart
-    cart = get_user_cart(current_user.id)
-    if not cart:
-        cart = Cart(user_id=current_user.id, created_at=datetime.now(timezone.utc))
-        db.session.add(cart)
+    if current_user.is_authenticated:
+        # Logged-in user: save in DB cart
+        cart = get_user_cart(current_user.id)
+        if not cart:
+            cart = Cart(user_id=current_user.id, created_at=datetime.now(timezone.utc))
+            db.session.add(cart)
+            db.session.commit()
+
+        cart_item = CartItem.query.filter_by(cart_id=cart.id, product_id=product_id).first()
+
+        current_qty = cart_item.quantity if cart_item else 0
+        new_total_qty = current_qty + quantity
+
+        if new_total_qty > product.quantity:
+            flash(f"Only {product.quantity - current_qty} items left in stock. Please adjust quantity.", "warning")
+            return redirect(request.referrer or url_for('product_detail', product_id=product_id))
+
+        if cart_item:
+            cart_item.quantity = new_total_qty
+        else:
+            cart_item = CartItem(cart_id=cart.id, product_id=product_id, quantity=quantity)
+            db.session.add(cart_item)
+
         db.session.commit()
 
-    cart_item = CartItem.query.filter_by(cart_id=cart.id, product_id=product_id).first()
-
-    current_qty = cart_item.quantity if cart_item else 0
-    new_total_qty = current_qty + quantity
-
-    if new_total_qty > product.quantity:
-        flash(f"Only {product.quantity - current_qty} items left in stock. Please adjust quantity.", "warning")
-        return redirect(request.referrer or url_for('product_detail', product_id=product_id))
-
-    if cart_item:
-        cart_item.quantity = new_total_qty
     else:
-        cart_item = CartItem(cart_id=cart.id, product_id=product_id, quantity=quantity)
-        db.session.add(cart_item)
+        # Guest user: save in session basket
+        basket = session.get('basket', [])
 
-    db.session.commit()
+        for item in basket:
+            if item['product_id'] == product_id:
+                current_qty = item['quantity']
+                new_total_qty = current_qty + quantity
+                if new_total_qty > product.quantity:
+                    flash(f"Only {product.quantity - current_qty} items left in stock. Please adjust quantity.",
+                          "warning")
+                    return redirect(request.referrer or url_for('product_detail', product_id=product_id))
+                item['quantity'] = new_total_qty
+                break
+        else:
+            if quantity > product.quantity:
+                flash(f"Only {product.quantity} items left in stock. Please adjust quantity.", "warning")
+                return redirect(request.referrer or url_for('product_detail', product_id=product_id))
+            basket.append({
+                'product_id': product_id,
+                'quantity': quantity,
+                'price': float(product.price)
+            })
+
+        session['basket'] = basket
+
     flash(f"Added {quantity} of the product to your cart.", "success")
     return redirect(request.referrer or url_for('cart'))
 
@@ -429,14 +474,36 @@ def remove_cart_item(item_id):
 
 
 @app.route('/cart')
-@login_required
 def cart():
-    cart = get_user_cart(current_user.id)
-    if not cart or not cart.items:
-        return render_template('cart.html', items=[], total=0)
-    items = cart.items
-    total = sum(item.product.price * item.quantity for item in items)
+    if current_user.is_authenticated:
+        cart = get_user_cart(current_user.id)
+        items = []
+        total = 0
+        for ci in cart.items if cart and cart.items else []:
+            items.append({
+                'product': ci.product,
+                'quantity': ci.quantity,
+                'price': ci.product.price,
+                'cart_item_id': ci.id
+            })
+            total += ci.product.price * ci.quantity
+    else:
+        basket = session.get('basket', [])
+        items = []
+        total = 0
+        for b in basket:
+            product = Product.query.get(b['product_id'])
+            if product:
+                items.append({
+                    'product': product,
+                    'quantity': b['quantity'],
+                    'price': b['price'],
+                    'cart_item_id': None  # no DB id
+                })
+                total += b['price'] * b['quantity']
+
     return render_template('cart.html', items=items, total=total)
+
 
 
 @app.route('/checkout', methods=['POST', 'GET'])
