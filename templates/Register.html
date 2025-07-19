@@ -21,7 +21,20 @@
         <div class="col-lg-8 col-md-10 mx-auto">
             <!--Rendering the registration form here-->
             {{ render_form(form, novalidate=True, button_map={"submit": "primary"}) }}
+            <input type="checkbox" onclick="togglePassword()"> Show Password <br>
         </div>
     </div>
 </div>
+<script>
+function togglePassword() {
+    const password = document.getElementById("password");
+    const confirm = document.getElementById("confirm_password");
+
+    [password, confirm].forEach(field => {
+        if (field) {
+            field.type = field.type === "password" ? "text" : "password";
+        }
+    });
+}
+</script>
 {% endblock %}
