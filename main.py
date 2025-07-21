@@ -82,6 +82,11 @@ gravatar = Gravatar(app,
                     use_ssl=False,
                     base_url=None)
 
+product_tags = db.Table(
+    'product_tags',
+    db.Column('product_id', db.Integer, db.ForeignKey('product.id'), primary_key=True),
+    db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True)
+)
 
 class Cart(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -150,12 +155,16 @@ class Product(db.Model):
     quantity = db.Column(db.Integer, default=0)
     is_active = db.Column(db.Boolean, default=True)
     comments = db.relationship('Comment', backref='product', lazy=True)
-
+    tags = db.relationship('Tag',secondary=product_tags,backref=db.backref('products', lazy='dynamic')
+                           ,lazy='dynamic')
     def average_rating(self):
         avg = db.session.query(func.avg(Comment.rating)) \
             .filter(Comment.product_id == self.id).scalar()
         return round(avg or 0, 1)
 
+class Tag(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False, unique=True)
 
 class OrderItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)

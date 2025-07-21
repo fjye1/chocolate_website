@@ -29,9 +29,12 @@ class AddAddress(FlaskForm):
 class ProductForm(FlaskForm):
     name = StringField('Product Name', validators=[DataRequired()])
     price = DecimalField('Price', validators=[DataRequired()])
-    weight = DecimalField('Weight', validators=[DataRequired()])
     description = StringField('Description')
     image = FileField('Product Image', validators=[FileAllowed(['jpg', 'png', 'jpeg'])])
+    weight = DecimalField('Weight', validators=[DataRequired()])
+    
+
+
     submit = SubmitField('Create Product')
 
 class CommentForm(FlaskForm):
