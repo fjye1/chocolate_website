@@ -871,6 +871,17 @@ def admin_products():
     return render_template("Admin/admin_products.html",
                            products=products)
 
+@app.route('/admin/products/edit/<int:product_id>', methods=['GET', 'POST'])
+def admin_edit_product(product_id):
+    product = db.get_or_404(Product, product_id)
+    form = ProductForm(obj=product)  # pre-fill with product data
+
+    if form.validate_on_submit():
+        form.populate_obj(product)  # update product with form data
+        db.session.commit()
+        return redirect(url_for('admin_products'))
+
+    return render_template('Admin/admin_products_edit.html', form=form, product=product)
 
 @app.route('/admin/activate/<int:product_id>', methods=["POST"])
 @login_required

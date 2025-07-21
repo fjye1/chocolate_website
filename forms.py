@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, PasswordField, DecimalField, IntegerField
+from wtforms import StringField, SubmitField, PasswordField, DecimalField, IntegerField, TextAreaField
 from wtforms.validators import DataRequired, URL, NumberRange, EqualTo
 from flask_ckeditor import CKEditorField
 from flask_wtf.file import FileField, FileAllowed
@@ -29,7 +29,7 @@ class AddAddress(FlaskForm):
 class ProductForm(FlaskForm):
     name = StringField('Product Name', validators=[DataRequired()])
     price = DecimalField('Price', validators=[DataRequired()])
-    description = StringField('Description')
+    description = TextAreaField('Description')
     image = FileField('Product Image', validators=[FileAllowed(['jpg', 'png', 'jpeg'])])
     weight = DecimalField('Weight', validators=[DataRequired()])
     quantity = IntegerField('Quantity', validators=[DataRequired()])
@@ -39,3 +39,5 @@ class CommentForm(FlaskForm):
     comment_text = CKEditorField("Comment", validators=[DataRequired()])
     rating = IntegerField('Rating', validators=[NumberRange(min=1, max=5)])
     submit = SubmitField("Submit Comment")
+
+
