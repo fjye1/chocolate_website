@@ -849,8 +849,9 @@ def create_product():
         new_product = Product(
             name=form.name.data,
             price=float(form.price.data),
-            weight=float(form.weight.data),
             description=form.description.data,
+            weight=float(form.weight.data),
+            quantity=(form.quantity.data),
             image=f'images/choc/{image_filename}' if image_filename else None
         )
         db.session.add(new_product)
