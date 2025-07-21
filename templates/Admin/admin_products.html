@@ -12,6 +12,7 @@
         <th>Price</th>
         <th>Active</th>
         <th>Quantity</th>
+        <th>Tags</th>
         <th>Actions</th>
     </tr>
     </thead>
@@ -23,11 +24,16 @@
         <td>£{{ "%.2f"|format(product.price) }}</td>
         <td>{{ "Yes" if product.is_active else "No" }}</td>
         <td>{{ product.quantity }}</td>
-<!--        <td>{{product.tags}}</td>-->
+        <td>
+            {{ product.tags | map(attribute='name') | join(', ') }}
+        </td>
         <td>
             <div class="d-flex gap-2 align-items-center">
                 <a href="{{ url_for('product_detail', product_id=product.id) }}" class="btn btn-sm btn-info">View</a>
-                <a href="{{ url_for('admin_edit_product', product_id=product.id) }}" class="btn btn-warning btn-sm">Edit</a>
+                <a href="{{ url_for('admin_edit_product', product_id=product.id) }}"
+                   class="btn btn-warning btn-sm">Edit</a>
+                <a href="{{ url_for('admin_add_product', product_id=product.id) }}"
+                   class="btn btn-secondary btn-sm">Add</a>
                 <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal"
                         data-bs-target="#deleteModal{{ product.id }}">
                     🗑️

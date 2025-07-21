@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+
+
+<h1>Add Product</h1>
+<h2> Use this form to add stock to products</h2>
+<form method="POST" enctype="multipart/form-data">
+    {{ form.hidden_tag() }}
+    <h3>
+        {{ product.name }}<br>
+    </h3>
+    <img src="{{ url_for('static', filename=product.image) }}" width="200">
+    <div>
+        {{ form.quantity.label }}<br>
+        {{ form.quantity() }}
+    </div>
+    <div> current Quantity: {{product.quantity}}</div>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+</form>
+
+
+{% endblock %}

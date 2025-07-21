@@ -33,6 +33,7 @@ class ProductForm(FlaskForm):
     image = FileField('Product Image', validators=[FileAllowed(['jpg', 'png', 'jpeg'])])
     weight = DecimalField('Weight', validators=[DataRequired()])
     quantity = IntegerField('Quantity', validators=[DataRequired()])
+    tags = StringField('Tags')
     submit = SubmitField('Create Product')
 
 class CommentForm(FlaskForm):

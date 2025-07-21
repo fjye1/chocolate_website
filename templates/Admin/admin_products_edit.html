@@ -1,9 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Edit Product</h2>
-<h3> Use this form to update exisitng products</h3>
+
+
+<h1>Edit Product</h2>
+<h2> Use this form to update exisitng products</h2>
 <form method="POST" enctype="multipart/form-data">
     {{ form.hidden_tag() }}
+    <img src="{{ url_for('static', filename=product.image) }}" width="200">
     <div>
         {{ form.name.label }}<br>
         {{ form.name(size=40) }}
@@ -13,9 +16,10 @@
         {{ form.price() }}
     </div>
     <div>
-    {{ form.description.label }}<br>
-    {{ form.description(rows=5, cols=50) }}
-</div>
+        {{ form.description.label }}<br>
+        {{ form.description(rows=5, cols=50) }}
+    </div>
+
     <div>
         {{ form.image.label }}<br>
         {{ form.image(size=60) }}
@@ -25,13 +29,19 @@
         {{ form.weight() }}
     </div>
     <div>
-        {{ form.quantity.label }}<br>
+        <br>
+        Current Quantity(this updates the total we have instock)
+        <br>
+        <b>We should never need to update this</b>
+        <br>
         {{ form.quantity() }}
     </div>
     <div>
-        <br>
-        {{ form.submit(value='Save Changes') }}
+        {{ form.tags.label }}<br>
+        {{ form.tags(size=100) }}
     </div>
-
+    <button type="submit" class="btn btn-primary">Save</button>
 </form>
+
+
 {% endblock %}
