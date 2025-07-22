@@ -51,6 +51,12 @@ body {
   }
 }
 
+@media (max-width: 320px) {
+  .hide-under-320 {
+    display: none !important;
+  }
+}
+
 
 /* comment section css pulled from the training exersises i did */
 .comment {

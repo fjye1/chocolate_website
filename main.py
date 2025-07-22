@@ -228,6 +228,22 @@ def home():
                            comments=random_comments,
                            sorted_products=sorted_products)
 
+@app.route('/product')
+def product_page():
+    product_key = request.args.get('product')
+
+    if product_key:
+        tag = Tag.query.filter(Tag.name.ilike(f"%{product_key}%")).first()
+        if tag:
+            products = tag.products.filter_by(is_active=True).all()
+        else:
+            products = []
+    else:
+        products = Product.query.filter_by(is_active=True).all()
+
+    return render_template('Product/product_page.html', product_key=product_key, products=products)
+
+
 
 @app.route('/search')
 def search():
@@ -239,7 +255,7 @@ def search():
     # Example: search products by name or description (adjust your model)
     results = Product.query.filter(Product.name.ilike(f'%{query}%')).all()
 
-    return render_template('search_results.html', query=query, results=results)
+    return render_template('Product/search_results.html', query=query, results=results)
 
 
 @app.route("/product/<int:product_id>", methods=["GET", "POST"])
@@ -275,7 +291,7 @@ def product_detail(product_id):
         db.session.commit()
         return redirect(url_for('product_detail', product_id=product_id))
 
-    return render_template("product_details.html",
+    return render_template("Product/product_details.html",
                            product=product,
                            form=comment_form,
                            can_comment=can_comment)

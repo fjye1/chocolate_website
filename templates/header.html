@@ -2,12 +2,23 @@
     .simple-bg-header {
       background-color: #afc08f; /* Light gray - change this to any color you want */
     }
-        .header-grid {
+    .second-bg-header {
+
+    background-color: #fce7a3;
+}
+    .header-grid {
         display: grid;
         grid-template-columns: 1fr auto 1fr;
         align-items: center;
         gap: 1rem;
         min-height: 80px; /* Ensure enough height for the logo */
+    }
+    .header-second-grid {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 1rem;
+        min-height: 30px; /* Ensure enough height for the logo */
     }
 
     .left-section {
@@ -31,6 +42,12 @@
         gap: 1rem;
         height: 80px; /* Match the header height */
     }
+    .left-second-section, .right-second-section {
+  display: flex !important;          /* ensure flex */
+  justify-content: center !important; /* center horizontally */
+  align-items: center !important;     /* center vertically */
+  height: 40px;                      /* keep your height */
+}
 
     @media (max-width: 768px) {
         .header-grid {
@@ -47,15 +64,12 @@
 
 </style>
 
-<header class="p-3 mb-3 border-bottom simple-bg-header">
+<header class="simple-bg-header m-0 p-0">
     <div class="container">
         <div class="header-grid">
             <!-- Left section -->
             <div class="left-section">
                 <a href="/" class="d-flex align-items-center link-body-emphasis text-decoration-none">
-                    <svg class="bi me-2" width="40" height="32" role="img" aria-label="Bootstrap">
-                        <use xlink:href="#bootstrap"></use>
-                    </svg>
                 </a>
 
                 <ul class="nav mb-0">
@@ -67,7 +81,7 @@
                     <li><a href="{{ url_for('login') }}" class="nav-link px-2 link-body-emphasis">Login</a></li>
                     {% endif %}
                     <li><a href="{{ url_for('home') }}" class="nav-link px-2 link-body-emphasis">Home</a></li>
-                    <li><a href="#" class="nav-link px-2 link-body-emphasis">Products</a></li>
+                    <li><a href="{{ url_for('product_page') }}" class="nav-link px-2 link-body-emphasis">Products</a></li>
 
                 </ul>
             </div>
@@ -79,7 +93,7 @@
             </div>
 
             <!-- Right section -->
-            <div class="right-section">
+            <div class="right-section ">
                 <form role="search" action="{{ url_for('search') }}" method="GET">
                     <input type="search" name="q" class="form-control" placeholder="Search..." aria-label="Search">
                 </form>
@@ -87,7 +101,6 @@
                 <a href="{{ url_for('cart') }}" class="nav-link px-2 link-body-emphasis">
                     <img src="{{ url_for('static', filename='images/cart.svg') }}" alt="Cart" width="50">
                 </a>
-
 
 
                 {% if current_user.is_authenticated %}
@@ -111,3 +124,24 @@
         </div>
     </div>
 </header>
+<div class="hide-under-769">
+    <div class="second-bg-header">
+        <div class="header-second-grid " >
+            <div class="left-second-section" style="height: 30px;">
+                <ul class="nav mb-0">
+                    <li><a href="{{ url_for('product_page') }}?product=Milky" class="nav-link px-2 link-body-emphasis">Milky</a></li>
+                    <li><a href="{{ url_for('product_page') }}?product=Saucy" class="nav-link px-2 link-body-emphasis">Saucy</a></li>
+                </ul>
+            </div>
+            <div class="center-logo" style="height: 30px;"></div>
+            <div class="right-second-section" style="height: 30px;">
+                <ul class="nav mb-0">
+                    <li><a href="{{ url_for('product_page') }}?product=Crunchy" class="nav-link px-2 link-body-emphasis">Crunchy</a></li>
+                    <li><a href="{{ url_for('product_page') }}?product=Special" class="nav-link px-2 link-body-emphasis">Special</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+

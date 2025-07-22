@@ -1,0 +1,33 @@
+{% from "bootstrap5/form.html" import render_form %}
+{% extends "base.html" %}
+{% block content %}
+
+
+{% if products %}
+{% if product_key %}
+<h2>Search results for "{{ product_key }}"</h2>
+{% endif %}
+<div class="container-fluid">
+    <div class="row g-0 align-items-center">
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-4">
+            {% for product in products %}
+            <div class="col">
+                <div class="card h-100">
+                    <a href="{{ url_for('product_detail', product_id=product.id) }}"
+                       style="text-decoration: none; color: inherit;">
+                        <img src="{{ url_for('static', filename=product.image) }}" class="card-img-top"
+                             alt="Product Image">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ product.name }}</h5>
+                            <p><strong>Rating:</strong> {{ product.average_rating() }} ⭐</p>
+                            <p class="card-text"><strong>£{{ product.price }}</strong></p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif%}
+{% endblock %}
