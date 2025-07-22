@@ -1,0 +1,15 @@
+{% extends "Admin/admin_base.html" %}
+{% block admin_block %}
+<div class="container mt-4">
+    <h3>Add Tracking to Order {{ order.order_id }}</h3>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.tracking_code.label }}
+            {{ form.tracking_code(class="form-control") }}
+        </div>
+        <button type="submit" class="btn btn-primary mt-2">Submit</button>
+    </form>
+</div>
+
+{% endblock %}

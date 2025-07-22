@@ -44,3 +44,7 @@ class CommentForm(FlaskForm):
 class StockForm(FlaskForm):
     quantity = IntegerField("Quantity", validators=[DataRequired()])
     submit = SubmitField("Add Stock")
+
+class TrackingForm(FlaskForm):
+    tracking_code = StringField('Tracking Code', validators=[DataRequired()])
+    submit = SubmitField('Submit')

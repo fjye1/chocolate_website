@@ -17,7 +17,8 @@
                     <th>Date</th>
                     <th>Total (£)</th>
                     <th>Status</th>
-                    <th>Details</th>
+                    <th>View</th>
+                    <th>Tracking</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -31,6 +32,14 @@
                     <td>
                         <a href="{{ url_for('invoice', order_id=order.order_id) }}"
                            class="btn btn-sm btn-primary">View</a>
+                    </td>
+                    <td>
+                        {% if order.tracking_number %}
+                        <button class="btn btn-success btn-sm" disabled>Sent</button>
+                        {% else %}
+                        <a href="{{ url_for('add_tracking', order_id=order.order_id) }}" class="btn btn-danger btn-sm">Add
+                            Tracking</a>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}

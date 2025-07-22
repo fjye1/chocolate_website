@@ -11,11 +11,11 @@ from email.message import EmailMessage
 from flask_gravatar import Gravatar
 from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
-from forms import RegisterForm, LoginForm, AddAddress, ProductForm, CommentForm, StockForm
+from forms import RegisterForm, LoginForm, AddAddress, ProductForm, CommentForm, StockForm, TrackingForm
 from flask_login import LoginManager, login_user, current_user, login_required, logout_user, UserMixin,AnonymousUserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, asc, nullslast, nullsfirst, case
 from sqlalchemy import cast, Date
 from datetime import datetime, timedelta, timezone
 import stripe
@@ -866,10 +866,61 @@ def admin():
     plt.close()
 
     total_sales_last_week = sum(s or 0 for s in sales_dict.values())
-    orders = Orders.query.order_by(Orders.created_at.desc()).all()
+    orders = Orders.query.order_by(
+        case(
+            (Orders.tracking_number == None, 0),
+            else_=1
+        ),
+        Orders.created_at.asc()
+    ).all()
 
     return render_template('Admin/admin.html', chart=chart_base64, orders=orders, total=total_sales_last_week)
 
+@app.route('/admin/order/<string:order_id>/add-tracking', methods=['GET', 'POST'])
+def add_tracking(order_id):
+    order = db.get_or_404(Orders, order_id)
+    form = TrackingForm()
+
+    if form.validate_on_submit():
+        order.tracking_number = form.tracking_code.data
+        db.session.commit()
+
+        # Render invoice HTML
+        invoice_html = render_template('invoice.html', order=order)
+
+        # Convert to PDF
+        pdf_stream = io.BytesIO()
+        pisa.CreatePDF(invoice_html, dest=pdf_stream, link_callback=link_callback)
+        pdf = pdf_stream.getvalue()
+
+        # Prepare email
+        msg = EmailMessage()
+        msg['Subject'] = f"Your Order Has Shipped - {order.order_id}"
+        msg['From'] = "your_email@example.com"
+        msg['To'] = order.user.email
+        msg.set_content(f"""Hi {order.user.name},
+
+Your order has been shipped!
+
+Tracking number: {order.tracking_number}
+
+Your invoice is attached.
+
+Thanks for shopping with us!
+""")
+
+        # Attach invoice
+        msg.add_attachment(pdf, maintype='application', subtype='pdf', filename=f"Invoice_{order.order_id}.pdf")
+
+        # Send
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+            smtp.login(user=choc_email, password=choc_password)
+            smtp.send_message(msg)
+
+        flash("Tracking number added and invoice emailed.", "success")
+        return redirect(url_for('admin'))
+
+    return render_template('Admin/add_tracking.html', form=form, order=order)
 
 
 @app.route('/create-product', methods=['GET', 'POST'])
