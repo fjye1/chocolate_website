@@ -41,4 +41,6 @@ class CommentForm(FlaskForm):
     rating = IntegerField('Rating', validators=[NumberRange(min=1, max=5)])
     submit = SubmitField("Submit Comment")
 
-
+class StockForm(FlaskForm):
+    quantity = IntegerField("Quantity", validators=[DataRequired()])
+    submit = SubmitField("Add Stock")

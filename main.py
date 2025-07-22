@@ -11,7 +11,7 @@ from email.message import EmailMessage
 from flask_gravatar import Gravatar
 from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
-from forms import RegisterForm, LoginForm, AddAddress, ProductForm, CommentForm
+from forms import RegisterForm, LoginForm, AddAddress, ProductForm, CommentForm, StockForm
 from flask_login import LoginManager, login_user, current_user, login_required, logout_user, UserMixin,AnonymousUserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
@@ -957,7 +957,7 @@ def admin_edit_product(product_id):
 @app.route('/admin/products/add/<int:product_id>', methods=['GET','POST'])
 def admin_add_product(product_id):
     product = db.get_or_404(Product, product_id)
-    form = ProductForm()
+    form = StockForm()
 
     if form.validate_on_submit():
         product.quantity += form.quantity.data
