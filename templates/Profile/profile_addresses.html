@@ -2,29 +2,26 @@
 {% from "bootstrap5/form.html" import render_form %}
 {% block title %}Profile Home{% endblock %}
 {% block profile_block %}
-<!-- Profile Content -->
-<!--<div class="col-md-9">-->
-<!--    <h2>User Profile</h2>-->
-<!--    <div class="card p-3" style="max-width: 600px;">-->
-<!--        <div class="text-center mb-3">-->
-<!--            <img src="{{ current_user.email | gravatar }}" alt="Profile Picture" class="rounded-circle" width="100"-->
-<!--                 height="100">-->
-<!--        </div>-->
-<!--        <ul class="list-group list-group-flush">-->
-<!--            <li class="list-group-item"><strong>Name:</strong> {{ current_user.name }}</li>-->
-<!--            <li class="list-group-item"><strong>Email:</strong> {{ current_user.email }}</li>-->
-<!--            <li class="list-group-item"><strong>Address:</strong> {{ current_user.address }}</li>-->
-<!--            <li class="list-group-item"><strong>City:</strong> {{ current_user.city }}</li>-->
-<!--            <li class="list-group-item"><strong>Postcode:</strong> {{ current_user.postcode }}</li>-->
-<!--        </ul>-->
-<!--        {{render_form(form, novalidate=True, button_map={"submit": "primary"}) }}-->
-<!--    </div>-->
-<!--</div>-->
-<div class="container mt-4">
-    <h3>Your Addresses</h3>
 
+<div class="container mt-4">
+
+    <!-- Default Address Box -->
+    {% for address in current_user.addresses if address.current_address %}
+    <div class="card border-success mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Default Address</h5>
+            <p class="card-text">
+                {{ address.street }}<br>
+                {{ address.city }}<br>
+                {{ address.postcode }}
+            </p>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Other Addresses -->
     <div class="row">
-        {% for address in current_user.addresses %}
+        {% for address in current_user.addresses if not address.current_address %}
         <div class="col-md-4">
             <div class="card mb-3">
                 <div class="card-body">
@@ -34,42 +31,33 @@
                         {{ address.postcode }}
                     </p>
                     <form method="POST" action="{{ url_for('set_current_address', address_id=address.id) }}">
-                        <button type="submit"
-                                class="btn btn-sm {% if address.current_address %}btn-success{% else %}btn-outline-primary{% endif %}"
-                                {% if address.current_address %} disabled {% endif %}>
-                            {% if address.current_address %}
-                            Current
-                            {% else %}
-                            Make Current
-                            {% endif %}
-                        </button>
+                        <button type="submit" class="btn btn-outline-primary btn-sm">Make Default</button>
                     </form>
-                </div>
-                <div>
-                    <form method="POST" action="{{ url_for('delete_address', address_id=address.id) }}"
-                          style="display:inline;">
-                        <div style="display: flex; justify-content: center; margin-top: 10px;">
-                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                        </div>
+                    <form method="POST" action="{{ url_for('delete_address', address_id=address.id) }}" class="mt-2">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
                     </form>
                 </div>
             </div>
         </div>
         {% endfor %}
     </div>
-</div>
 
-
-<!-- Repeat card as needed -->
-</div>
-<div class="card mt-4">
-    <div class="card-body">
-        <h5 class="card-title">Add New Address</h5>
-
-        {{render_form(form, novalidate=True, button_map={"submit": "primary"}) }}
-
+    <!-- Toggle Form Button -->
+    <div class="text-center mt-4">
+        <button class="btn btn-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#addAddressForm">
+            + Add New Address
+        </button>
     </div>
-</div>
-</div>
 
+    <!-- Collapsible Form -->
+    <div class="collapse mt-3" id="addAddressForm">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">New Address</h5>
+                {{ render_form(form, novalidate=True, button_map={"submit": "primary"}) }}
+            </div>
+        </div>
+    </div>
+
+</div>
 {% endblock %}

@@ -452,7 +452,7 @@ def set_current_address(address_id):
 
     db.session.commit()
     flash("Current address updated.", "success")
-    return redirect(url_for('profile'))
+    return redirect(url_for('profile_addresses'))
 
 
 @app.route('/add-to-cart', methods=['POST'])
