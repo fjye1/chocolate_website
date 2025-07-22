@@ -231,17 +231,48 @@ def home():
 @app.route('/product')
 def product_page():
     product_key = request.args.get('product')
+    selected_tags = request.args.getlist('tags')
+    sort = request.args.get('sort')
+
+    query = Product.query.filter_by(is_active=True)
 
     if product_key:
         tag = Tag.query.filter(Tag.name.ilike(f"%{product_key}%")).first()
         if tag:
-            products = tag.products.filter_by(is_active=True).all()
+            query = tag.products.filter_by(is_active=True)
         else:
-            products = []
-    else:
-        products = Product.query.filter_by(is_active=True).all()
+            query = Product.query.filter(False)  # No match → empty
+    elif selected_tags:
+        query = (
+            query
+            .join(Product.tags)
+            .filter(Tag.name.in_(selected_tags))
+            .distinct()
+        )
 
-    return render_template('Product/product_page.html', product_key=product_key, products=products)
+    # Apply sorting
+    if sort == 'price_asc':
+        query = query.order_by(Product.price.asc())
+    elif sort == 'price_desc':
+        query = query.order_by(Product.price.desc())
+
+
+    products = query.all()
+    if sort == 'rating_desc':
+        products.sort(key=lambda p: p.average_rating(), reverse=True)
+    elif sort == 'rating_asc':
+        products.sort(key=lambda p: p.average_rating())
+
+    all_tags = Tag.query.order_by(Tag.name).all()
+
+    return render_template(
+        'Product/product_page.html',
+        product_key=product_key,
+        products=products,
+        all_tags=all_tags,
+        selected_tags=selected_tags,
+        sort=sort
+    )
 
 
 
