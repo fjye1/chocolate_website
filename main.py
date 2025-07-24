@@ -1,3 +1,5 @@
+
+from extension import db
 from flask import Flask, render_template, redirect, url_for, flash, request, abort, jsonify, make_response, current_app, session
 from flask_sqlalchemy import SQLAlchemy
 import csv
@@ -23,35 +25,32 @@ import os, uuid
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 import os
-
+from extension import db
 load_dotenv()
-
-# "CreatePostForm, CommentForm, ProductForm"
-
 
 login_manager = LoginManager()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
-stripe.api_key = os.getenv("STRIPE_API_KEY")
-login_manager.init_app(app)
 
-bootstrap = Bootstrap5(app)
-
-ckeditor = CKEditor(app)
-# TODO the section of code below is to link you to the render Database it wont work if you dont have a render database set up
+# TODO the section of code below is to link you to the render Database it won't work if you don't have a render database set up
 # app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("RENDER_DATABASE_URL")
 
-## this is the local database for app developement only use if in offline_db branch
-
+## this is the local database for app development only — use if in offline_db branch
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
-db = SQLAlchemy(app)
+
+stripe.api_key = os.getenv("STRIPE_API_KEY")
+
+db.init_app(app)
+
+login_manager.init_app(app)
+bootstrap = Bootstrap5(app)
+ckeditor = CKEditor(app)
 
 choc_email = os.getenv("CHOC_EMAIL")
-
 choc_password = os.getenv("CHOC_PASSWORD")
 
-
+from models import Cart, CartItem, Address, User, Orders, Product,  Tag, OrderItem, Comment
 def get_user_cart(user_id):
     return Cart.query.filter_by(user_id=user_id).first()
 
@@ -82,108 +81,7 @@ gravatar = Gravatar(app,
                     use_ssl=False,
                     base_url=None)
 
-product_tags = db.Table(
-    'product_tags',
-    db.Column('product_id', db.Integer, db.ForeignKey('product.id'), primary_key=True),
-    db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True)
-)
 
-class Cart(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    items = db.relationship('CartItem', backref='cart', lazy=True)
-
-class CartItem(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    cart_id = db.Column(db.Integer, db.ForeignKey('cart.id'))
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
-    quantity = db.Column(db.Integer, default=1)
-    product = db.relationship('Product')
-
-
-class Address(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    street = db.Column(db.String(255))
-    city = db.Column(db.String(100))
-    postcode = db.Column(db.String(20))
-    current_address = db.Column(db.Boolean, default=False)
-
-
-class User(db.Model, UserMixin):
-    id = db.Column(db.Integer, primary_key=True)
-    admin = db.Column(db.Boolean, default=False)
-    name = db.Column(db.String(120), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
-    addresses = db.relationship('Address', backref='user', lazy=True)  # one-to-many
-    comments = db.relationship('Comment', backref='user', lazy=True)
-    carts = db.relationship('Cart', backref='user', lazy=True)
-
-    @property
-    def current_address(self):
-        return next((a for a in self.addresses if a.current_address), None)
-
-
-class Orders(db.Model):
-    order_id = db.Column(db.String(20), primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    user = db.relationship('User', backref='orders')
-    order_date = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    status = db.Column(db.String(20), default='pending')
-    total_amount = db.Column(db.Float, nullable=False)
-    total_pounds_sterling = db.Column(db.Float)
-    payment_method = db.Column(db.String(50))
-    shipping_address_id = db.Column(db.Integer, db.ForeignKey('address.id'))
-    shipping_address = db.relationship('Address', foreign_keys=[shipping_address_id])
-    billing_address_id = db.Column(db.Integer, db.ForeignKey('address.id'))
-    billing_address = db.relationship('Address', foreign_keys=[billing_address_id])
-    tracking_number = db.Column(db.String(50))
-    created_at = db.Column(db.DateTime, server_default=func.now())
-    updated_at = db.Column(db.DateTime, onupdate=func.now())
-
-
-class Product(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    price = db.Column(db.Float, nullable=False)
-    description = db.Column(db.Text)
-    image = db.Column(db.String(200))
-    weight = db.Column(db.Integer)
-    quantity = db.Column(db.Integer, default=0)
-    is_active = db.Column(db.Boolean, default=True)
-    comments = db.relationship('Comment', backref='product', lazy=True)
-    tags = db.relationship('Tag',secondary=product_tags,backref=db.backref('products', lazy='dynamic')
-                           ,lazy='dynamic')
-
-    def average_rating(self):
-        avg = db.session.query(func.avg(Comment.rating)) \
-            .filter(Comment.product_id == self.id).scalar()
-        return round(avg or 0, 1)
-
-class Tag(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), nullable=False, unique=True)
-
-class OrderItem(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    order_id = db.Column(db.String(20), db.ForeignKey('orders.order_id'))
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
-    quantity = db.Column(db.Integer, default=1)
-    price_at_purchase = db.Column(db.Float)  # optional
-
-    product = db.relationship('Product', backref='order_items')
-    order = db.relationship('Orders', backref='items')
-
-
-class Comment(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
-    comment = db.Column(db.String(120), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    rating = db.Column(db.Integer, nullable=True)
 
 
 # ✅ must be run before adding data
