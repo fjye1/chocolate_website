@@ -263,7 +263,15 @@ def product_page():
     elif sort == 'rating_asc':
         products.sort(key=lambda p: p.average_rating())
 
-    all_tags = Tag.query.order_by(Tag.name).all()
+    all_tags = (
+        db.session.query(Tag, func.count(Product.id).label("tag_count"))
+        .join(Product.tags)
+        .group_by(Tag.id)
+        .order_by(func.count(Product.id).desc())
+        .limit(10)
+        .all()
+    )
+    
 
     return render_template(
         'Product/product_page.html',

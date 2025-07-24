@@ -7,7 +7,7 @@
         <div id="filter-div" class="col-12 col-md-2 p-3 border-end">
             <h2>Filters</h2>
             <form method="get" action="{{ url_for('product_page') }}">
-                {% for tag in all_tags %}
+                {% for tag, count in all_tags %}
                 <div class="form-check mt-2">
                     <input
                             class="form-check-input"
@@ -17,7 +17,9 @@
                             id="tag-{{ tag.id }}"
                             {% if tag.name in selected_tags %}checked{% endif %}
                     >
-                    <label class="form-check-label" for="tag-{{ tag.id }}">{{ tag.name }}</label>
+                    <label class="form-check-label" for="tag-{{ tag.id }}">
+                        {{ tag.name }} ({{ count }})
+                    </label>
                 </div>
                 {% endfor %}
 
@@ -25,10 +27,15 @@
                     <label for="sort" class="form-label">Sort by</label>
                     <select name="sort" id="sort" class="form-select">
                         <option value="" {% if not sort %}selected{% endif %}>-- Select --</option>
-                        <option value="price_asc" {% if sort=='price_asc' %}selected{% endif %}>Price: Low to High</option>
-                        <option value="price_desc" {% if sort=='price_desc' %}selected{% endif %}>Price: High to Low</option>
-                        <option value="rating_asc" {% if sort=='rating_asc' %}selected{% endif %}>Rating: Low to High</option>
-                        <option value="rating_desc" {% if sort=='rating_desc' %}selected{% endif %}>Rating: High to Low</option>
+                        <option value="price_asc" {% if sort=='price_asc' %}selected{% endif %}>Price: Low to High
+                        </option>
+                        <option value="price_desc" {% if sort=='price_desc' %}selected{% endif %}>Price: High to Low
+                        </option>
+                        <option value="rating_asc" {% if sort=='rating_asc' %}selected{% endif %}>Rating: Low to High
+                        </option>
+                        <option value="rating_desc" {% if sort=='rating_desc' %}selected{% endif %}>Rating: High to
+                            Low
+                        </option>
                     </select>
                 </div>
 
