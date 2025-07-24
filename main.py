@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, flash, request, abort, jsonify, make_response, current_app,session
+from flask import Flask, render_template, redirect, url_for, flash, request, abort, jsonify, make_response, current_app, session
 from flask_sqlalchemy import SQLAlchemy
 import csv
 from sqlalchemy import extract, label
@@ -12,7 +12,7 @@ from flask_gravatar import Gravatar
 from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
 from forms import RegisterForm, LoginForm, AddAddress, ProductForm, CommentForm, StockForm, TrackingForm
-from flask_login import LoginManager, login_user, current_user, login_required, logout_user, UserMixin,AnonymousUserMixin
+from flask_login import LoginManager, login_user, current_user, login_required, logout_user, UserMixin, AnonymousUserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from sqlalchemy.sql import func, asc, nullslast, nullsfirst, case
@@ -94,7 +94,6 @@ class Cart(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     items = db.relationship('CartItem', backref='cart', lazy=True)
 
-
 class CartItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     cart_id = db.Column(db.Integer, db.ForeignKey('cart.id'))
@@ -157,6 +156,7 @@ class Product(db.Model):
     comments = db.relationship('Comment', backref='product', lazy=True)
     tags = db.relationship('Tag',secondary=product_tags,backref=db.backref('products', lazy='dynamic')
                            ,lazy='dynamic')
+
     def average_rating(self):
         avg = db.session.query(func.avg(Comment.rating)) \
             .filter(Comment.product_id == self.id).scalar()
@@ -256,7 +256,6 @@ def product_page():
     elif sort == 'price_desc':
         query = query.order_by(Product.price.desc())
 
-
     products = query.all()
     if sort == 'rating_desc':
         products.sort(key=lambda p: p.average_rating(), reverse=True)
@@ -272,7 +271,6 @@ def product_page():
         .all()
     )
 
-
     return render_template(
         'Product/product_page.html',
         product_key=product_key,
@@ -281,8 +279,6 @@ def product_page():
         selected_tags=selected_tags,
         sort=sort
     )
-
-
 
 @app.route('/search')
 def search():
@@ -567,7 +563,6 @@ def cart():
                 total += b['price'] * b['quantity']
 
     return render_template('cart.html', items=items, total=total)
-
 
 
 @app.route('/checkout', methods=['POST', 'GET'])
@@ -1057,7 +1052,7 @@ def admin_users():
         .order_by(total_orders.desc())
     )
     results = query.all()
-    return render_template("Admin/admin_users.html",results = results)
+    return render_template("Admin/admin_users.html", results=results)
 
 
 @app.route('/admin/reports')
