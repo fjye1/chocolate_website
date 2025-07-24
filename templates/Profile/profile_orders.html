@@ -13,6 +13,10 @@
             <strong>Status:</strong> {{ order.status }} <br>
             <strong>Total:</strong> £{{ '%.2f' % order.total_amount }}
         </div>
+        {% if order.tracking_number %}
+        <button class="btn btn-success btn-sm" disabled>Sent</button>
+        <strong>Tracking:</strong> {{ order.tracking_number }}
+        {% endif %}
         <a href="{{ url_for('invoice', order_id=order.order_id) }}" class="btn btn-primary btn-sm">View</a>
     </li>
     {% endfor %}
