@@ -271,7 +271,7 @@ def product_page():
         .limit(10)
         .all()
     )
-    
+
 
     return render_template(
         'Product/product_page.html',
