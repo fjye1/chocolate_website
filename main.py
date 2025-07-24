@@ -1,5 +1,4 @@
 
-from extension import db
 from flask import Flask, render_template, redirect, url_for, flash, request, abort, jsonify, make_response, current_app, session
 from flask_sqlalchemy import SQLAlchemy
 import csv
@@ -19,7 +18,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from sqlalchemy.sql import func, asc, nullslast, nullsfirst, case
 from sqlalchemy import cast, Date
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, date
 import stripe
 import os, uuid
 from werkzeug.utils import secure_filename
@@ -50,7 +49,10 @@ ckeditor = CKEditor(app)
 choc_email = os.getenv("CHOC_EMAIL")
 choc_password = os.getenv("CHOC_PASSWORD")
 
-from models import Cart, CartItem, Address, User, Orders, Product,  Tag, OrderItem, Comment
+from models import Cart, CartItem, Address, User, Orders, Product, Tag, OrderItem, Comment, ProductSalesHistory
+from functions import update_dynamic_prices, MAX_DAILY_CHANGE
+
+
 def get_user_cart(user_id):
     return Cart.query.filter_by(user_id=user_id).first()
 
@@ -111,10 +113,22 @@ def load_csv_data():
 with app.app_context():
     load_csv_data()
 
+@app.route("/run-dynamic-pricing")
+def run_dynamic_pricing():
+    update_dynamic_prices()
+    flash("Dynamic pricing updated successfully!", "success")
+    return redirect(url_for("product_page"))
+
+@app.route("/toggle-dynamic/<int:product_id>", methods=["POST"])
+def toggle_dynamic_pricing(product_id):
+    product = Product.query.get_or_404(product_id)
+    product.dynamic_pricing_enabled = not product.dynamic_pricing_enabled
+    db.session.commit()
+    return redirect(request.referrer or url_for("admin_products"))
 
 @app.route("/")
 def home():
-    products = Product.query.all()
+
     admin = current_user.admin if current_user.is_authenticated else False
     random_comments = Comment.query.order_by(func.random()).limit(3).all()
     products = Product.query.filter_by(is_active=True).all()
@@ -583,7 +597,6 @@ def payment_success():
     )
     db.session.add(order)
 
-    # Create order items
     for item in cart.items:
         order_item = OrderItem(
             order=order,
@@ -593,17 +606,19 @@ def payment_success():
         )
         db.session.add(order_item)
 
-    # Clear the cart
-    for item in cart.items:
-        db.session.delete(item)
+        # Update sales count for dynamic pricing
+        item.product.sold_today = (item.product.sold_today or 0) + item.quantity
 
-    # Reduce stock for each ordered product
-    for item in order.items:
+        # Reduce stock immediately
         item.product.quantity -= item.quantity
         if item.product.quantity <= 0:
             item.product.is_active = False
 
-    # Final commit
+    # Clear the cart (outside the loop)
+    for item in cart.items:
+        db.session.delete(item)
+
+    # Commit once after everything
     db.session.commit()
 
     # Generate invoice HTML
@@ -923,6 +938,7 @@ def admin_add_product(product_id):
 
     if form.validate_on_submit():
         product.quantity += form.quantity.data
+        product.expiration_date = form.expiry_date.data
         db.session.commit()
         return redirect(url_for('admin_products'))
 

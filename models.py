@@ -2,7 +2,7 @@ import datetime
 from flask_login import UserMixin
 from sqlalchemy.sql import func
 from extension import db
-from datetime import datetime
+from datetime import datetime, timezone
 
 product_tags = db.Table(
     'product_tags',
@@ -13,7 +13,7 @@ product_tags = db.Table(
 class Cart(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(datetime.timezone.utc))
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     items = db.relationship('CartItem', backref='cart', lazy=True)
 
 class CartItem(db.Model):
@@ -52,7 +52,7 @@ class Orders(db.Model):
     order_id = db.Column(db.String(20), primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship('User', backref='orders')
-    order_date = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(datetime.timezone.utc))
+    order_date = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     status = db.Column(db.String(20), default='pending')
     total_amount = db.Column(db.Float, nullable=False)
     total_pounds_sterling = db.Column(db.Float)
@@ -62,7 +62,7 @@ class Orders(db.Model):
     billing_address_id = db.Column(db.Integer, db.ForeignKey('address.id'))
     billing_address = db.relationship('Address', foreign_keys=[billing_address_id])
     tracking_number = db.Column(db.String(50))
-    created_at = db.Column(db.DateTime, server_default=func.now())
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, onupdate=func.now())
 
 
@@ -79,14 +79,14 @@ class Product(db.Model):
     tags = db.relationship('Tag',secondary=product_tags,backref=db.backref('products', lazy='dynamic')
                            ,lazy='dynamic')
     ############### this section contains data for the dynamic part
-    # expiration_date = db.Column(db.DateTime, nullable=True)
-    # date_added = db.Column(db.DateTime, default=func.now(), onupdate=func.now())
-    # dynamic_pricing_enabled = db.Column(db.Boolean, default=False)
-    # base_price = db.Column(db.Float, nullable=True)
-    # current_price = db.Column(db.Float, nullable=True)
-    # target_daily_sales = db.Column(db.Float, nullable=True)
-    # sold_today = db.Column(db.Integer, default=0)
-    # last_price_update = db.Column(db.DateTime, default=func.now())
+    expiration_date = db.Column(db.DateTime, nullable=True)
+    date_added = db.Column(db.DateTime, default=func.now(), onupdate=func.now())
+    dynamic_pricing_enabled = db.Column(db.Boolean, default=False)
+    base_price = db.Column(db.Float, nullable=True)
+    current_price = db.Column(db.Float, nullable=True)
+    target_daily_sales = db.Column(db.Float, nullable=True)
+    sold_today = db.Column(db.Integer, default=0)
+    last_price_update = db.Column(db.DateTime, default=func.now())
 
     ############### this section contains data for the dynamic part
 
@@ -96,14 +96,14 @@ class Product(db.Model):
         return round(avg or 0, 1)
 
 ############### this section contains data for the dynamic part
-# class ProductSalesHistory(db.Model):
-#     id = db.Column(db.Integer, primary_key=True)
-#     product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
-#     date = db.Column(db.Date, nullable=False)
-#     sold_quantity = db.Column(db.Integer, default=0)
-#     sold_price = db.Column(db.Float, nullable=False)  # price per unit sold
-#
-#     product = db.relationship('Product', backref=db.backref('sales_history', lazy='dynamic'))
+class ProductSalesHistory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    sold_quantity = db.Column(db.Integer, default=0)
+    sold_price = db.Column(db.Float, nullable=False)  # price per unit sold
+
+    product = db.relationship('Product', backref=db.backref('sales_history', lazy='dynamic'))
 ############### this section contains data for the dynamic part
 
 class Tag(db.Model):
@@ -126,5 +126,5 @@ class Comment(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
     comment = db.Column(db.String(120), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     rating = db.Column(db.Integer, nullable=True)

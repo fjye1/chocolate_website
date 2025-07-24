@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, PasswordField, DecimalField, IntegerField, TextAreaField
+from wtforms import StringField, SubmitField, PasswordField, DecimalField, IntegerField, TextAreaField, DateField
 from wtforms.validators import DataRequired, URL, NumberRange, EqualTo
 from flask_ckeditor import CKEditorField
 from flask_wtf.file import FileField, FileAllowed
@@ -43,6 +43,7 @@ class CommentForm(FlaskForm):
 
 class StockForm(FlaskForm):
     quantity = IntegerField("Quantity", validators=[DataRequired()])
+    expiry_date = DateField("Expiry Date", format="%Y-%m-%d", validators=[DataRequired()])
     submit = SubmitField("Add Stock")
 
 class TrackingForm(FlaskForm):
