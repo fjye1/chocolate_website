@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
-    <title>Stripe Payment Element Demo</title>
-    <script src="https://js.stripe.com/v3/"></script>
-    <style>
-        #payment-element {
-          margin-bottom: 20px;
-        }
-        #payment-message {
-          color: red;
-        }
-    </style>
+<title>Stripe Payment Element Demo</title>
+<script src="https://js.stripe.com/v3/"></script>
+<style>
+    #payment-element {
+      margin-bottom: 20px;
+    }
+    #payment-message {
+      color: red;
+    }
+</style>
 </head>
 <body>
 <h2>Pay £{{ '%.2f' | format(total) }}</h2>
@@ -19,20 +19,23 @@
     <button id="submit" class="btn btn-success">Pay</button>
     <div id="payment-message"></div>
 </form>
-<a href="{{ url_for('payment_success') }}" class="btn btn-success mt-3">Test Success</a>
-<a href="{{ url_for('payment_failure') }}" class="btn btn-danger mt-3">Test Failure</a>
+
+<p>Payment succeeds 4242 4242 4242 4242</p>
+<p>Payment requires authentication 4000 0025 0000 3155</p>
+<p>Payment is declined 4000 0000 0000 9995</p>
+
 {% endif %}
 <h4>Shipping Address</h4>
 <div class="card p-3" style="max-width: 400px;">
-  {% if current_user.current_address %}
+    {% if current_user.current_address %}
     <p><strong>Name:</strong> {{ current_user.name }}</p>
     <p><strong>Street:</strong> {{ current_user.current_address.street }}</p>
     <p><strong>City:</strong> {{ current_user.current_address.city }}</p>
     <p><strong>Postcode:</strong> {{ current_user.current_address.postcode }}</p>
     <p><strong>Country:</strong> GB</p>
-  {% else %}
+    {% else %}
     <p>No current address set. <a href="{{ url_for('profile_addresses') }}">Set one in your profile</a>.</p>
-  {% endif %}
+    {% endif %}
 </div>
 <script>
     let stripe, elements, paymentElement;
@@ -51,6 +54,7 @@
       })
       .then(res => res.json())
       .then(({ clientSecret }) => {
+
         stripe = Stripe('pk_test_51RTLGdIB4LlFizy67MEzJaNLjWUUuzK0gjjz8cFImGmLnZ4ka468OHpf1dhQg7b25Hm180PfPh16BPEhVwq9Wcu100563RRNWV');
 
         const appearance = { theme: 'flat' };
@@ -86,3 +90,4 @@
 </body>
 </html>
 {% endblock %}
+

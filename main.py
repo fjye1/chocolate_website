@@ -640,9 +640,19 @@ def create_payment_intent():
     return jsonify({'clientSecret': intent.client_secret})
 
 
-@app.route('/payment-success')
+@app.route('/success')
 @login_required
 def payment_success():
+    # Retrieve and verify PaymentIntent
+    payment_intent_id = request.args.get("payment_intent")
+    if not payment_intent_id:
+        flash("Payment information is missing.", "danger")
+        return redirect(url_for('home'))
+
+    intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+    if intent.status != "succeeded":
+        flash("Payment was not completed.", "danger")
+        return redirect(url_for('payment_failure'))
     # Get current user's cart
     cart = Cart.query.filter_by(user_id=current_user.id).first()
     if not cart or not cart.items:
