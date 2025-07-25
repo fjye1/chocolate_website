@@ -102,6 +102,8 @@ class ProductSalesHistory(db.Model):
     date = db.Column(db.Date, nullable=False)
     sold_quantity = db.Column(db.Integer, default=0)
     sold_price = db.Column(db.Float, nullable=False)  # price per unit sold
+    target_daily_sales = db.Column(db.Float, nullable = False)
+    demand = db.Column(db.Float, nullable = False)
 
     product = db.relationship('Product', backref=db.backref('sales_history', lazy='dynamic'))
 ############### this section contains data for the dynamic part
