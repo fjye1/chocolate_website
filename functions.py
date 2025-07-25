@@ -49,7 +49,8 @@ def update_dynamic_prices():
             sold_quantity=product.sold_today,
             sold_price=product.price,  # This is the price used during the day
             target_daily_sales=product.target_daily_sales,
-            demand=product.sold_today/product.target_daily_sales
+            demand=product.sold_today/product.target_daily_sales,
+            floor_price=product.floor_price
         )
         db.session.add(sales_history)
 

@@ -6,6 +6,8 @@ from sqlalchemy import extract, label
 from collections import defaultdict
 import smtplib
 from email.message import EmailMessage
+
+from sqlalchemy.orm import joinedload
 from xhtml2pdf import pisa
 import io
 from email.message import EmailMessage
@@ -891,9 +893,32 @@ def create_product():
 @login_required
 @admin_only
 def admin_products():
-    products = Product.query.order_by(Product.quantity.asc()).all()
-    return render_template("Admin/admin_products.html",
-                           products=products)
+    days_back = 28
+    start_date = date.today() - timedelta(days=days_back)
+
+    products = Product.query.options(joinedload(Product.sales_history)).all()
+
+    for product in products:
+        # Filter recent sales
+        product.recent_sales = [
+            sale for sale in product.sales_history
+            if sale.date >= start_date
+        ]
+
+        # Calculate totals
+        total_revenue = 0
+        total_cost = 0
+        for sale in product.recent_sales:
+            total_revenue += sale.sold_quantity * sale.sold_price
+            total_cost += sale.sold_quantity * (product.floor_price or 0)
+
+        product.profit = total_revenue - total_cost
+        product.profit_percent = (product.profit / total_revenue * 100) if total_revenue > 0 else 0
+
+    # Sort products by profit_percent descending
+    products.sort(key=lambda p: p.profit_percent, reverse=True)
+
+    return render_template("Admin/admin_products.html", products=products)
 
 
 @app.route('/admin/products/edit/<int:product_id>', methods=['GET', 'POST'])

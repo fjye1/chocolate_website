@@ -4,21 +4,39 @@
 {% block admin_block %}
 
 <h2>All Products</h2>
+
 <table class="table table-striped">
     <thead>
     <tr>
-        <th>Image</th>
-        <th>Name</th>
-        <th>Price</th>
-        <th>Active</th>
-        <th>Quantity</th>
-        <th>Tags</th>
-        <th>Actions</th>
-        <th>Dynamic Pricing</th>
+      <th rowspan="2">Image</th>
+      <th rowspan="2">Name</th>
+      <th rowspan="2">Price</th>
+      <th rowspan="2">Active</th>
+      <th rowspan="2">Quantity</th>
+      <th rowspan="2">Tags</th>
+      <th rowspan="2">Actions</th>
+      <th rowspan="2">Dynamic Pricing</th>
+
+      <!-- Parent header spanning 3 columns -->
+      <th colspan="3" class="text-center">Last 28 Days</th>
     </tr>
-    </thead>
-    <tbody>
+    <tr>
+      <th>Revenue</th>
+      <th>Profit</th>
+      <th>Profit per unit %</th>
+    </tr>
+  </thead>
+  <tbody>
     {% for product in products %}
+    {% set ns = namespace(total_revenue=0, total_cost=0) %}
+    {% for sale in product.recent_sales %}
+        {% set revenue = sale.sold_quantity * sale.sold_price %}
+        {% set cost = sale.sold_quantity * product.floor_price %}
+        {% set ns.total_revenue = ns.total_revenue + revenue %}
+        {% set ns.total_cost = ns.total_cost + cost %}
+    {% endfor %}
+    {% set profit = ns.total_revenue - ns.total_cost %}
+    {% set profit_percent = (profit / ns.total_revenue * 100) if ns.total_revenue > 0 else 0 %}
     <tr>
         <td><img src="{{ url_for('static', filename=product.image) }}" width="100"></td>
         <td>{{ product.name }}</td>
@@ -92,8 +110,13 @@
                 </button>
             </form>
         </td>
+        <td>£{{ ns.total_revenue | round(2) }}</td>
+        <td>£{{ profit | round(2) }}</td>
+        <td>{{ profit_percent | round(1) }}%</td>
+
     </tr>
     {% endfor %}
     </tbody>
 </table>
+
 {% endblock %}
