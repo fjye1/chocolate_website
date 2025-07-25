@@ -1,11 +1,15 @@
-
+import os
+import sys
 from datetime import datetime, date
-from models import db, Product, ProductSalesHistory
 
+# Add your project to the path so we can import from it
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Import your app and the function
+from main import app, db  # Replace 'your_main_app_file' with your actual main file name
+from models import Product, ProductSalesHistory
 
 MAX_DAILY_CHANGE = 0.05  # 5%
-
-
 
 def update_dynamic_prices():
     today = date.today()
@@ -40,8 +44,6 @@ def update_dynamic_prices():
         product.pending_price = round(new_price, 2)
         product.target_daily_sales = target_daily_sales
 
-
-
         # Save sales history
         sales_history = ProductSalesHistory(
             product_id=product.id,
@@ -62,6 +64,9 @@ def update_dynamic_prices():
         product.pending_price = None
         product.sold_today = 0
 
-
-
     db.session.commit()
+    print(f"Updated pricing for {len(products)} products at {datetime.utcnow()}")
+
+if __name__ == "__main__":
+    with app.app_context():
+        update_dynamic_prices()
