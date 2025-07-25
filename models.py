@@ -87,6 +87,7 @@ class Product(db.Model):
     target_daily_sales = db.Column(db.Float, nullable=True)
     sold_today = db.Column(db.Integer, default=0)
     last_price_update = db.Column(db.DateTime, default=func.now())
+    price_floor = db.Column(db.Float, nullable = True)
 
     ############### this section contains data for the dynamic part
 
