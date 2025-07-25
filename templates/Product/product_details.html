@@ -16,6 +16,8 @@
                 <p class="mb-0"><strong>Quantity in Stock:</strong> {{ product.quantity }}</p>
             </div>
             <p><strong>Rating:</strong> {{ product.average_rating() }} ⭐</p>
+
+
             <form method="POST" action="/add-to-cart">
                 <div class="d-flex align-items-center gap-2">
                     <button type="button" class="qty-btn minus"
@@ -41,6 +43,12 @@
 
 
                 </div>
+<!--                <h5 class="mt-4">Price Trend (Static)</h5>-->
+<!--                <img src="{{ url_for('static', filename='graphs/price_charts/product_' + product.id|string + '.png') }}"-->
+<!--                     alt="Static price trend chart" class="img-fluid mb-3">-->
+
+                <h5>Price Trend (Interactive)</h5>
+                <canvas id="priceChart" height="200" class="w-100 mb-3"></canvas>
             </form>
             {% if current_user.admin %}
             <button type="button" class="btn btn-danger btn-sm mt-3" data-bs-toggle="modal"
@@ -139,13 +147,24 @@
 {% endif %}
 
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    // Chart.js price chart
+    const ctx = document.getElementById('priceChart').getContext('2d');
+    const priceChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ dates|tojson }},
+            datasets: [{
+                label: 'Price (£)',
+                data: {{ prices|tojson }},
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            }]
+        }
+    });
 
-    function updateStars(value) {
-  const fullStars = '⭐'.repeat(value);
-  const emptyStars = '☆'.repeat(5 - value);
-  document.getElementById('stars').textContent = fullStars + emptyStars;
-}
+    // Quantity buttons
     document.querySelector('.qty-btn.minus').addEventListener('click', () => {
         const input = document.getElementById('quantity-input');
         let value = parseInt(input.value);
@@ -157,6 +176,12 @@
         let value = parseInt(input.value);
         input.value = value + 1;
     });
-</script>
 
+    // Live star rating preview
+    function updateStars(value) {
+        const fullStars = '⭐'.repeat(value);
+        const emptyStars = '☆'.repeat(5 - value);
+        document.getElementById('stars').textContent = fullStars + emptyStars;
+    }
+</script>
 {% endblock %}

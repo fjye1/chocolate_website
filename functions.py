@@ -1,8 +1,11 @@
-from datetime import datetime, date
-from datetime import datetime, date
+
+from datetime import datetime, date, timedelta
 from models import db, Product, ProductSalesHistory
+import matplotlib.pyplot as plt
+import os
 
 MAX_DAILY_CHANGE = 0.05  # 5%
+
 
 
 def update_dynamic_prices():
@@ -38,9 +41,7 @@ def update_dynamic_prices():
         product.pending_price = round(new_price, 2)
         product.target_daily_sales = target_daily_sales
 
-        # Step 4: Roll pending price into active price (e.g. at end of day)
-        product.price = product.pending_price
-        product.last_price_update = datetime.utcnow()
+
 
         # Save sales history
         sales_history = ProductSalesHistory(
@@ -54,8 +55,14 @@ def update_dynamic_prices():
         )
         db.session.add(sales_history)
 
+        # Step 4: Roll pending price into active price (e.g. at end of day)
+        product.price = product.pending_price
+        product.last_price_update = datetime.utcnow()
+
         # Optional: reset pending price until next calculation
         product.pending_price = None
         product.sold_today = 0
+
+
 
     db.session.commit()
