@@ -44,7 +44,7 @@ class CommentForm(FlaskForm):
 class StockForm(FlaskForm):
     quantity = IntegerField("Quantity", validators=[DataRequired()])
     expiry_date = DateField("Expiry Date", format="%Y-%m-%d", validators=[DataRequired()])
-    price_floor = DecimalField("Price Floor", validators=[DataRequired()])
+    floor_price = DecimalField("Price Floor", validators=[DataRequired()])
     submit = SubmitField("Add Stock")
 
 class TrackingForm(FlaskForm):

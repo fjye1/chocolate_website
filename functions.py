@@ -27,11 +27,32 @@ def update_dynamic_prices():
         demand_ratio = sold_today / target_daily_sales if target_daily_sales > 0 else 1
         price_multiplier = 1 + (demand_ratio - 1) * MAX_DAILY_CHANGE
 
-        # Apply to price
+        # Step 1: Calculate the new price
         new_price = product.price * price_multiplier
+
+        # Step 2: Apply floor
+        if new_price < product.floor_price:
+            new_price = product.floor_price
+
+        # Step 3: Set pending price and sales target
+        product.pending_price = round(new_price, 2)
         product.target_daily_sales = target_daily_sales
-        product.current_price = round(new_price, 2)
-        product.price = product.current_price
+
+        # Step 4: Roll pending price into active price (e.g. at end of day)
+        product.price = product.pending_price
         product.last_price_update = datetime.utcnow()
+
+        # Save sales history
+        sales_history = ProductSalesHistory(
+            product_id=product.id,
+            date=date.today(),
+            sold_quantity=product.sold_today,
+            sold_price=product.price  # This is the price used during the day
+        )
+        db.session.add(sales_history)
+
+        # Optional: reset pending price until next calculation
+        product.pending_price = None
+        product.sold_today = 0
 
     db.session.commit()

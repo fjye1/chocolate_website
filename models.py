@@ -82,12 +82,11 @@ class Product(db.Model):
     expiration_date = db.Column(db.DateTime, nullable=True)
     date_added = db.Column(db.DateTime, default=func.now(), onupdate=func.now())
     dynamic_pricing_enabled = db.Column(db.Boolean, default=False)
-    base_price = db.Column(db.Float, nullable=True)
-    current_price = db.Column(db.Float, nullable=True)
+    pending_price = db.Column(db.Float, nullable=True) ##Price value for tomorrow or the next period of time
     target_daily_sales = db.Column(db.Float, nullable=True)
     sold_today = db.Column(db.Integer, default=0)
     last_price_update = db.Column(db.DateTime, default=func.now())
-    price_floor = db.Column(db.Float, nullable = True)
+    floor_price = db.Column(db.Float, nullable = True) ## min price that it cant drop below dynamically
 
     ############### this section contains data for the dynamic part
 

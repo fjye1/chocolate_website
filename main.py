@@ -939,7 +939,7 @@ def admin_add_product(product_id):
     if form.validate_on_submit():
         product.quantity += form.quantity.data
         product.expiration_date = form.expiry_date.data
-        product.price_floor = form.price_floor.data
+        product.floor_price = form.floor_price.data
         db.session.commit()
         return redirect(url_for('admin_products'))
 
