@@ -1,13 +1,14 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, PasswordField, DecimalField, IntegerField, TextAreaField, DateField
-from wtforms.validators import DataRequired, URL, NumberRange, EqualTo
+from wtforms import StringField, SubmitField, PasswordField, DecimalField, IntegerField, TextAreaField, DateField, \
+    EmailField
+from wtforms.validators import DataRequired, URL, NumberRange, EqualTo, Email
 from flask_ckeditor import CKEditorField
 from flask_wtf.file import FileField, FileAllowed
 
 
 class RegisterForm(FlaskForm):
     name = StringField("Name", validators=[DataRequired()])
-    email = StringField("Email", validators=[DataRequired()])
+    email = EmailField('Email', validators=[DataRequired(), Email()])
     password = PasswordField("Password", validators=[DataRequired()])
     confirm_password = PasswordField("Confirm Password", validators=[
         DataRequired(), EqualTo('password', message='Passwords must match.')
