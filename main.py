@@ -561,53 +561,35 @@ def create_payment_intent():
 
 
 @app.route('/success')
+@login_required
 def payment_success():
-    # Retrieve and verify PaymentIntent
     payment_intent_id = request.args.get("payment_intent")
     if not payment_intent_id:
-        flash("Payment information is missing.", "danger")
+        flash("Payment info missing.", "danger")
         return redirect(url_for('home'))
 
     intent = stripe.PaymentIntent.retrieve(payment_intent_id)
     if intent.status != "succeeded":
-        flash("Payment was not completed.", "danger")
+        flash("Payment not completed.", "danger")
         return redirect(url_for('payment_failure'))
 
-    # Get user_id from metadata (instead of relying on login)
-    user_id = intent.metadata.get('user_id')
-    if not user_id:
-        flash("User information is missing from payment metadata.", "danger")
-        return redirect(url_for('home'))
-
-    cart = Cart.query.filter_by(user_id=user_id).first()
+    cart = Cart.query.filter_by(user_id=current_user.id).first()
     if not cart or not cart.items:
         flash("Your cart is empty.", "warning")
         return redirect(url_for('home'))
 
-    # Fetch user record (for email)
-    user = User.query.get(user_id)
-    if not user:
-        flash("User not found.", "danger")
-        return redirect(url_for('home'))
-
-    # You may want to get default or most recent address
-    shipping_address = Address.query.filter_by(user_id=user_id).first()
-    billing_address = Address.query.filter_by(user_id=user_id).first()
-
+    shipping_address = Address.query.filter_by(user_id=current_user.id).first()
+    billing_address = Address.query.filter_by(user_id=current_user.id).first()
     if not shipping_address or not billing_address:
-        flash("Missing address information.", "danger")
+        flash("Missing address info.", "danger")
         return redirect(url_for('checkout'))
 
-    # Generate order ID
     order_id = f"ORD{int(datetime.now(timezone.utc).timestamp())}"
-
-    # Calculate total
     total_amount = sum(item.product.price * item.quantity for item in cart.items)
 
-    # Create order
     order = Orders(
         order_id=order_id,
-        user_id=user_id,
+        user_id=current_user.id,
         status="paid",
         total_amount=total_amount,
         payment_method="test_mode",
@@ -624,37 +606,43 @@ def payment_success():
             price_at_purchase=item.product.price
         )
         db.session.add(order_item)
-
         item.product.sold_today = (item.product.sold_today or 0) + item.quantity
         item.product.quantity -= item.quantity
         if item.product.quantity <= 0:
             item.product.is_active = False
 
-    # Clear cart
     for item in cart.items:
         db.session.delete(item)
 
     db.session.commit()
 
-    # Generate invoice
-    invoice_html = render_template('invoice.html', order=order)
-    pdf_stream = io.BytesIO()
-    pisa.CreatePDF(invoice_html, dest=pdf_stream, link_callback=link_callback)
-    pdf = pdf_stream.getvalue()
+    # === Generate PDF & send email efficiently ===
+    try:
+        invoice_html = render_template('invoice.html', order=order)
+        pdf_stream = io.BytesIO()
+        pisa_status = pisa.CreatePDF(invoice_html, dest=pdf_stream, link_callback=link_callback)
+        pdf = pdf_stream.getvalue()
 
-    # Email
-    msg = EmailMessage()
-    msg['Subject'] = f"Your Invoice - {order.order_id}"
-    msg['From'] = "your_email@example.com"
-    msg['To'] = user.email
-    msg.set_content("Thanks for your order! Your invoice is attached.")
-    msg.add_attachment(pdf, maintype='application', subtype='pdf', filename=f"Invoice_{order.order_id}.pdf")
+        msg = EmailMessage()
+        msg['Subject'] = f"Your Invoice - {order.order_id}"
+        msg['From'] = choc_email
+        msg['To'] = current_user.email
+        msg.set_content("Thanks for your order! Your invoice is attached.")
+        msg.add_attachment(pdf, maintype='application', subtype='pdf', filename=f"Invoice_{order.order_id}.pdf")
 
-    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-        smtp.login(user=choc_email, password=choc_password)
-        smtp.send_message(msg)
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+            smtp.login(user=choc_email, password=choc_password)
+            smtp.send_message(msg)
 
-    flash("Payment successful! Your order has been placed.", "success")
+        pdf_stream.close()
+        del pdf_stream
+        del pdf
+
+    except Exception as e:
+        print(f"[Invoice/Email Error]: {e}")
+        flash("Order complete, but invoice could not be emailed.", "warning")
+
+    flash("Payment successful! Order placed.", "success")
     return render_template('payment_success.html', order=order)
 
 
