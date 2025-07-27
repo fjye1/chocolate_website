@@ -746,34 +746,36 @@ def admin():
     one_week_ago = datetime.now(timezone.utc).date() - timedelta(days=6)  # last 7 days including today
     today = datetime.now(timezone.utc).date()
 
-    # TODO this section is for the render database(Postgres) it will not work on local
-    # sales_data = (
-    #     db.session.query(
-    #         cast(Orders.created_at, Date).label('date'),
-    #         func.sum(Orders.total_amount).label('sales')
-    #     )
-    #     .filter(cast(Orders.created_at, Date) >= one_week_ago)
-    #     .filter(cast(Orders.created_at, Date) <= today)
-    #     .group_by('date')
-    #     .order_by('date')
-    #     .all()
-    # )
-    ## TODO this section is for local database(SQLite) it will not work on render
-    sales_data = (
-        db.session.query(
-            func.date(Orders.created_at).label("date"),  # ← this works better than cast
-            func.sum(Orders.total_amount).label("sales")
+    if db.engine.name == 'sqlite':
+        # SQLite version
+        sales_data = (
+            db.session.query(
+                func.date(Orders.created_at).label("date"),
+                func.sum(Orders.total_amount).label("sales")
+            )
+            .filter(func.date(Orders.created_at) >= one_week_ago)
+            .filter(func.date(Orders.created_at) <= today)
+            .group_by(func.date(Orders.created_at))
+            .order_by(func.date(Orders.created_at))
+            .all()
         )
-        .filter(func.date(Orders.created_at) >= one_week_ago)
-        .filter(func.date(Orders.created_at) <= today)
-        .group_by(func.date(Orders.created_at))
-        .order_by(func.date(Orders.created_at))
-        .all()
-    )
+    else:
+        # Postgres version
+        sales_data = (
+            db.session.query(
+                cast(Orders.created_at, Date).label('date'),
+                func.sum(Orders.total_amount).label('sales')
+            )
+            .filter(cast(Orders.created_at, Date) >= one_week_ago)
+            .filter(cast(Orders.created_at, Date) <= today)
+            .group_by('date')
+            .order_by('date')
+            .all()
+        )
 
     sales_dict = {
-        datetime.strptime(date_str, '%Y-%m-%d').date(): sales
-        for date_str, sales in sales_data
+        date_obj: sales
+        for date_obj, sales in sales_data
     }
 
     day_dates = [one_week_ago + timedelta(days=i) for i in range(7)]
