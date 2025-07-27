@@ -1,12 +1,7 @@
 
 from flask import Flask, render_template, redirect, url_for, flash, request, abort, jsonify, make_response, current_app, session
-from flask_sqlalchemy import SQLAlchemy
 import csv
-from sqlalchemy import extract, label
-from collections import defaultdict
 import smtplib
-from email.message import EmailMessage
-
 from sqlalchemy.orm import joinedload
 from xhtml2pdf import pisa
 import io
