@@ -526,14 +526,13 @@ def cart_data():
 @login_required
 def create_payment_intent():
     data = request.json
-    print('Received data for PaymentIntent:', data)  # Server log
+    print('Received data for PaymentIntent:', data)
 
     cart = data.get('cart', [])
     amount = 0
     for item in cart:
         price = item.get('price', 0)
         quantity = item.get('quantity', 0)
-        # Defensive cast and conversion to pence
         try:
             price_pence = int(round(float(price) * 100))
             qty = int(quantity)
@@ -550,15 +549,18 @@ def create_payment_intent():
     intent = stripe.PaymentIntent.create(
         amount=amount,
         currency='gbp',
-        metadata={'cart': cart_str},
+        metadata={
+            'user_id': str(current_user.id),  # string because metadata values must be strings
+            'cart': cart_str
+        },
         automatic_payment_methods={'enabled': True}
     )
+
     print('Created PaymentIntent:', intent.id)
     return jsonify({'clientSecret': intent.client_secret})
 
 
 @app.route('/success')
-@login_required
 def payment_success():
     # Retrieve and verify PaymentIntent
     payment_intent_id = request.args.get("payment_intent")
@@ -570,21 +572,33 @@ def payment_success():
     if intent.status != "succeeded":
         flash("Payment was not completed.", "danger")
         return redirect(url_for('payment_failure'))
-    # Get current user's cart
-    cart = Cart.query.filter_by(user_id=current_user.id).first()
+
+    # Get user_id from metadata (instead of relying on login)
+    user_id = intent.metadata.get('user_id')
+    if not user_id:
+        flash("User information is missing from payment metadata.", "danger")
+        return redirect(url_for('home'))
+
+    cart = Cart.query.filter_by(user_id=user_id).first()
     if not cart or not cart.items:
         flash("Your cart is empty.", "warning")
         return redirect(url_for('home'))
 
+    # Fetch user record (for email)
+    user = User.query.get(user_id)
+    if not user:
+        flash("User not found.", "danger")
+        return redirect(url_for('home'))
+
     # You may want to get default or most recent address
-    shipping_address = Address.query.filter_by(user_id=current_user.id).first()
-    billing_address = Address.query.filter_by(user_id=current_user.id).first()
+    shipping_address = Address.query.filter_by(user_id=user_id).first()
+    billing_address = Address.query.filter_by(user_id=user_id).first()
 
     if not shipping_address or not billing_address:
         flash("Missing address information.", "danger")
         return redirect(url_for('checkout'))
 
-    # Generate order ID (simple version)
+    # Generate order ID
     order_id = f"ORD{int(datetime.now(timezone.utc).timestamp())}"
 
     # Calculate total
@@ -593,7 +607,7 @@ def payment_success():
     # Create order
     order = Orders(
         order_id=order_id,
-        user_id=current_user.id,
+        user_id=user_id,
         status="paid",
         total_amount=total_amount,
         payment_method="test_mode",
@@ -611,40 +625,31 @@ def payment_success():
         )
         db.session.add(order_item)
 
-        # Update sales count for dynamic pricing
         item.product.sold_today = (item.product.sold_today or 0) + item.quantity
-
-        # Reduce stock immediately
         item.product.quantity -= item.quantity
         if item.product.quantity <= 0:
             item.product.is_active = False
 
-    # Clear the cart (outside the loop)
+    # Clear cart
     for item in cart.items:
         db.session.delete(item)
 
-    # Commit once after everything
     db.session.commit()
 
-    # Generate invoice HTML
+    # Generate invoice
     invoice_html = render_template('invoice.html', order=order)
-
-    # Render PDF
     pdf_stream = io.BytesIO()
     pisa.CreatePDF(invoice_html, dest=pdf_stream, link_callback=link_callback)
     pdf = pdf_stream.getvalue()
 
-    # Email setup
+    # Email
     msg = EmailMessage()
     msg['Subject'] = f"Your Invoice - {order.order_id}"
     msg['From'] = "your_email@example.com"
-    msg['To'] = current_user.email
+    msg['To'] = user.email
     msg.set_content("Thanks for your order! Your invoice is attached.")
-
-    # Attach PDF
     msg.add_attachment(pdf, maintype='application', subtype='pdf', filename=f"Invoice_{order.order_id}.pdf")
 
-    # Send the email (Gmail example, requires app password or enabling less secure apps)
     with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
         smtp.login(user=choc_email, password=choc_password)
         smtp.send_message(msg)
