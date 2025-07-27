@@ -14,7 +14,7 @@ from flask_login import LoginManager, login_user, current_user, login_required, 
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from sqlalchemy.sql import func, asc, nullslast, nullsfirst, case
-from sqlalchemy import cast, Date
+from sqlalchemy import cast, Date, literal
 from datetime import datetime, timedelta, timezone, date
 import stripe
 import os, uuid
@@ -986,12 +986,22 @@ def activate_product(product_id):
     return redirect(request.referrer or url_for('admin_products'))
 
 
+from sqlalchemy import func
+
 @app.route('/admin/users')
 @login_required
 @admin_only
 def admin_users():
     total_orders = func.coalesce(func.sum(Orders.total_amount), 0).label('total_orders')
-    address = (Address.street + ', ' + Address.city + ', ' + Address.postcode).label('address')
+    if db.engine.name == 'sqlite':
+        address = (
+                func.coalesce(Address.street, '') + literal(', ') +
+                func.coalesce(Address.city, '') + literal(', ') +
+                func.coalesce(Address.postcode, '')
+        ).label('address')
+    else:
+        address = func.concat_ws(', ', Address.street, Address.city, Address.postcode).label('address')
+
     query = (
         db.session.query(
             User.name,
@@ -1001,9 +1011,10 @@ def admin_users():
         )
         .outerjoin(Orders, User.id == Orders.user_id)
         .outerjoin(Address, (User.id == Address.user_id) & (Address.current_address == True))
-        .group_by(User.id)
+        .group_by(User.id, Address.street, Address.city, Address.postcode)
         .order_by(total_orders.desc())
     )
+
     results = query.all()
     return render_template("Admin/admin_users.html", results=results)
 
