@@ -6,4 +6,4 @@ celery = Celery("tasks", broker=redis_url)
 
 @celery.task
 def simple_task():
-    print("🔥 Task ran successfully on Render!")
+    return "🔥 Task ran successfully on Render!"
