@@ -51,7 +51,7 @@ from functions import update_dynamic_prices, MAX_DAILY_CHANGE
 
 from tasks import simple_task
 
-@app.route("/run-task")
+@app.route("/run_task", methods=["GET"])
 def run_task():
     simple_task.delay()
     return "Task queued!"
