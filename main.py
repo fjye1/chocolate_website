@@ -49,6 +49,13 @@ choc_password = os.getenv("CHOC_PASSWORD")
 from models import Cart, CartItem, Address, User, Orders, Product, Tag, OrderItem, Comment, ProductSalesHistory
 from functions import update_dynamic_prices, MAX_DAILY_CHANGE
 
+from tasks import simple_task
+
+@app.route("/run-task")
+def run_task():
+    simple_task.delay()
+    return "Task queued!"
+
 
 def get_user_cart(user_id):
     return Cart.query.filter_by(user_id=user_id).first()
@@ -1049,3 +1056,4 @@ if __name__ == "__main__":
 
 "https://www.hancocks.co.uk/"
 "https://www.hswholesalesweets.co.uk/"
+
