@@ -661,7 +661,7 @@ def invoice(order_id):
 
 @app.route('/internal-invoice/<string:order_id>/<string:secret>')
 def internal_invoice(order_id, secret):
-    if secret != os.getenv("INVOICE_SECRET"):
+    if secret != os.getenv("SECRET"):
         abort(403)
     order = Orders.query.filter_by(order_id=order_id).first_or_404()
     return render_template('invoice.html', order=order)
