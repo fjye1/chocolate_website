@@ -653,6 +653,12 @@ def payment_success():
     return render_template('payment_success.html', order=order)
 
 
+@app.route('/invoice/<string:order_id>')
+@login_required
+def invoice(order_id):
+    order = Orders.query.filter_by(order_id=order_id, user_id=current_user.id).first_or_404()
+    return render_template('invoice.html', order=order)
+
 @app.route('/internal-invoice/<string:order_id>/<string:secret>')
 def internal_invoice(order_id, secret):
     if secret != os.getenv("INVOICE_SECRET"):
