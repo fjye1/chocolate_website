@@ -22,7 +22,12 @@ from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 import os
 from extension import db
+from celery import Celery
 load_dotenv()
+
+REDIS_URL = os.getenv("REDIS_URL")
+
+celery = Celery('tasks', broker=REDIS_URL, backend=REDIS_URL)
 
 login_manager = LoginManager()
 
@@ -623,31 +628,15 @@ def payment_success():
 
     db.session.commit()
 
-    # === Generate PDF & send email efficiently ===
+    # Queue background task to generate invoice and send email
     try:
-        invoice_html = render_template('invoice.html', order=order)
-        pdf_stream = io.BytesIO()
-        pisa_status = pisa.CreatePDF(invoice_html, dest=pdf_stream, link_callback=link_callback)
-        pdf = pdf_stream.getvalue()
-
-        msg = EmailMessage()
-        msg['Subject'] = f"Your Invoice - {order.order_id}"
-        msg['From'] = choc_email
-        msg['To'] = current_user.email
-        msg.set_content("Thanks for your order! Your invoice is attached.")
-        msg.add_attachment(pdf, maintype='application', subtype='pdf', filename=f"Invoice_{order.order_id}.pdf")
-
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-            smtp.login(user=choc_email, password=choc_password)
-            smtp.send_message(msg)
-
-        pdf_stream.close()
-        del pdf_stream
-        del pdf
-
+        celery.send_task(
+            'tasks.send_invoice_email_task',
+            args=[order.order_id, current_user.email]
+        )
     except Exception as e:
-        print(f"[Invoice/Email Error]: {e}")
-        flash("Order complete, but invoice could not be emailed.", "warning")
+        print(f"[Invoice Queue Error]: {e}")
+        flash("Order complete, but invoice could not be queued for email.", "warning")
 
     flash("Payment successful! Order placed.", "success")
     return render_template('payment_success.html', order=order)
