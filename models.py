@@ -4,6 +4,7 @@ from sqlalchemy.sql import func
 from extension import db
 from datetime import datetime, timezone
 
+
 product_tags = db.Table(
     'product_tags',
     db.Column('product_id', db.Integer, db.ForeignKey('product.id'), primary_key=True),
