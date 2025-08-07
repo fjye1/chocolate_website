@@ -263,6 +263,9 @@ def product_detail(product_id):
                            prices=prices,
                            sales=sales)
 
+
+
+
 @app.route('/register', methods=["GET", "POST"])
 def register():
     form = RegisterForm()
@@ -795,6 +798,7 @@ def admin():
     day_dates = [one_week_ago + timedelta(days=i) for i in range(7)]
     day_labels = [d.strftime('%d %b') for d in day_dates]  # e.g. 15 Jun
 
+
     sales_values = [sales_dict.get(d, 0) for d in day_dates]
 
     df = pd.DataFrame({
@@ -916,8 +920,12 @@ def admin_products():
     start_date = date.today() - timedelta(days=days_back)
 
     products = Product.query.options(joinedload(Product.sales_history)).all()
-
     for product in products:
+        # Calculate days left for this product
+        if product.expiration_date:
+            product.days_left = (product.expiration_date - datetime.utcnow()).days
+        else:
+            product.days_left = None
         # Filter recent sales
         product.recent_sales = [
             sale for sale in product.sales_history

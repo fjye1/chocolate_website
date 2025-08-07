@@ -13,6 +13,8 @@
       <th rowspan="2">Price</th>
       <th rowspan="2">Active</th>
       <th rowspan="2">Quantity</th>
+      <th rowspan="2">Expiration Date</th>
+      <th rowspan="2">Days till expire</th>
       <th rowspan="2">Tags</th>
       <th rowspan="2">Actions</th>
       <th rowspan="2">Dynamic Pricing</th>
@@ -43,9 +45,9 @@
         <td>£{{ "%.2f"|format(product.price) }}</td>
         <td>{{ "Yes" if product.is_active else "No" }}</td>
         <td>{{ product.quantity }}</td>
-        <td>
-            {{ product.tags | map(attribute='name') | join(', ') }}
-        </td>
+        <td>{{ product.expiration_date.strftime('%d %b %Y') }}</td>
+        <td>{{ product.days_left }}</td>
+        <td>{{ product.tags | map(attribute='name') | join(', ') }}</td>
         <td>
             <div class="d-flex gap-2 align-items-center">
                 <a href="{{ url_for('product_detail', product_id=product.id) }}" class="btn btn-sm btn-info">View</a>
