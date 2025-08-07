@@ -1,0 +1,46 @@
+{% extends "Profile/profile_base.html" %}
+{% block title %}Profile Home{% endblock %}
+{% block profile_block %}
+<h2>Your Price Alerts</h2>
+
+{% if alerts %}
+<table class="table table-bordered table-hover mt-3">
+
+    <thead>
+    <tr>
+        <th></th>
+        <th>Product</th>
+        <th>Target Price</th>
+        <th>Expires</th>
+        <th>Status</th>
+        <th>Actions</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for alert in alerts %}
+    <tr>
+        <td><img src="{{ url_for('static', filename=alert.product.image) }}" alt="Product Image" height="150"></td>
+
+        <td>{{ alert.product.name }}</td>
+        <td>£{{ "%.2f"|format(alert.target_price) }}</td>
+        <td>{{ alert.expires_at.strftime("%Y-%m-%d") }}</td>
+        <td>
+            {% if alert.notified %}
+            ✅ Notified
+            {% else %}
+            ⏳ Waiting
+            {% endif %}
+        </td>
+        <td>
+            <form action="{{ url_for('delete_alert', alert_id=alert.id) }}" method="post" style="display:inline;">
+                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>You don't have any price alerts yet.</p>
+{% endif %}
+{% endblock %}

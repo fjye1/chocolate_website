@@ -383,6 +383,24 @@ def login():
 def profile():
     return render_template("Profile/profile.html")
 
+@app.route('/profile/price_alerts')
+def profile_price_alerts():
+    alerts = current_user.price_alerts
+
+    return render_template("Profile/profile_price_alerts.html", alerts=alerts)
+
+@app.route('/delete-alert/<int:alert_id>', methods=['POST'])
+@login_required
+def delete_alert(alert_id):
+    alert = PriceAlert.query.get_or_404(alert_id)
+
+    if alert.user_id != current_user.id:
+        abort(403)
+
+    db.session.delete(alert)
+    db.session.commit()
+    flash("Price alert deleted.", "success")
+    return redirect(url_for('profile_price_alerts'))
 
 @app.route('/profile/orders')
 def profile_orders():
