@@ -1089,6 +1089,23 @@ def admin_reports():
 def admin_support():
     return render_template("Admin/admin_support.html")
 
+@app.route('/admin/statistics')
+@login_required
+@admin_only
+def admin_statistics():
+    end_date = date.today()
+    start_date = end_date - timedelta(days=27)
+    data = (
+        SiteVisitCount.query
+        .filter(SiteVisitCount.date >= start_date)
+        .order_by(SiteVisitCount.date)
+        .all()
+    )
+
+    labels = [record.date.strftime('%Y-%m-%d') for record in data]
+    counts = [record.visit_count for record in data]
+
+    return render_template('admin/admin_statistics.html', labels=labels, counts=counts)
 
 @app.route('/admin/settings')
 @login_required
