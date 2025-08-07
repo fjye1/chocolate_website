@@ -51,7 +51,7 @@ ckeditor = CKEditor(app)
 choc_email = os.getenv("CHOC_EMAIL")
 choc_password = os.getenv("CHOC_PASSWORD")
 
-from models import Cart, CartItem, Address, User, Orders, Product, Tag, OrderItem, Comment, ProductSalesHistory, PriceAlert
+from models import Cart, CartItem, Address, User, Orders, Product, Tag, OrderItem, Comment, ProductSalesHistory, PriceAlert,SiteVisitCount
 from functions import update_dynamic_prices, MAX_DAILY_CHANGE
 
 from tasks import simple_task
@@ -61,6 +61,19 @@ def run_task():
     simple_task.delay()
     return "Task queued!"
 
+@app.before_request
+def count_visit():
+    if 'counted_today' in session:
+        return
+    today = date.today()
+    counter = SiteVisitCount.query.get(today)
+    if not counter:
+        counter = SiteVisitCount(date=today, visit_count=1)
+        db.session.add(counter)
+    else:
+        counter.visit_count += 1
+    db.session.commit()
+    session['counted_today'] = True
 
 def get_user_cart(user_id):
     return Cart.query.filter_by(user_id=user_id).first()

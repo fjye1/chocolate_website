@@ -5,18 +5,21 @@ from extension import db
 from datetime import datetime, timezone, timedelta
 
 
+class Address(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    street = db.Column(db.String(255))
+    city = db.Column(db.String(100))
+    postcode = db.Column(db.String(20))
+    current_address = db.Column(db.Boolean, default=False)
 
-product_tags = db.Table(
-    'product_tags',
-    db.Column('product_id', db.Integer, db.ForeignKey('product.id'), primary_key=True),
-    db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True)
-)
 
 class Cart(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     items = db.relationship('CartItem', backref='cart', lazy=True)
+
 
 class CartItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -26,13 +29,13 @@ class CartItem(db.Model):
     product = db.relationship('Product')
 
 
-class Address(db.Model):
+class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    street = db.Column(db.String(255))
-    city = db.Column(db.String(100))
-    postcode = db.Column(db.String(20))
-    current_address = db.Column(db.Boolean, default=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    comment = db.Column(db.String(120), nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    rating = db.Column(db.Integer, nullable=True)
 
 
 class User(db.Model, UserMixin):
@@ -50,24 +53,11 @@ class User(db.Model, UserMixin):
     def current_address(self):
         return next((a for a in self.addresses if a.current_address), None)
 
-
-class Orders(db.Model):
-    order_id = db.Column(db.String(20), primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    user = db.relationship('User', backref='orders')
-    order_date = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    status = db.Column(db.String(20), default='pending')
-    total_amount = db.Column(db.Float, nullable=False)
-    total_pounds_sterling = db.Column(db.Float)
-    payment_method = db.Column(db.String(50))
-    shipping_address_id = db.Column(db.Integer, db.ForeignKey('address.id'))
-    shipping_address = db.relationship('Address', foreign_keys=[shipping_address_id])
-    billing_address_id = db.Column(db.Integer, db.ForeignKey('address.id'))
-    billing_address = db.relationship('Address', foreign_keys=[billing_address_id])
-    tracking_number = db.Column(db.String(50))
-    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    updated_at = db.Column(db.DateTime, onupdate=func.now())
-
+product_tags = db.Table(
+    'product_tags',
+    db.Column('product_id', db.Integer, db.ForeignKey('product.id'), primary_key=True),
+    db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True)
+)
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -79,17 +69,17 @@ class Product(db.Model):
     quantity = db.Column(db.Integer, default=0)
     is_active = db.Column(db.Boolean, default=True)
     comments = db.relationship('Comment', backref='product', lazy=True)
-    tags = db.relationship('Tag',secondary=product_tags,backref=db.backref('products', lazy='dynamic')
-                           ,lazy='dynamic')
+    tags = db.relationship('Tag', secondary=product_tags, backref=db.backref('products', lazy='dynamic')
+                           , lazy='dynamic')
     ############### this section contains data for the dynamic part
     expiration_date = db.Column(db.DateTime, nullable=True)
     date_added = db.Column(db.DateTime, default=func.now(), onupdate=func.now())
     dynamic_pricing_enabled = db.Column(db.Boolean, default=False)
-    pending_price = db.Column(db.Float, nullable=True) ##Price value for tomorrow or the next period of time
+    pending_price = db.Column(db.Float, nullable=True)  ##Price value for tomorrow or the next period of time
     target_daily_sales = db.Column(db.Float, nullable=True)
     sold_today = db.Column(db.Integer, default=0)
     last_price_update = db.Column(db.DateTime, default=func.now())
-    floor_price = db.Column(db.Float, nullable = True) ## min price that it cant drop below dynamically
+    floor_price = db.Column(db.Float, nullable=True)  ## min price that it cant drop below dynamically
 
     ############### this section contains data for the dynamic part
 
@@ -98,6 +88,7 @@ class Product(db.Model):
             .filter(Comment.product_id == self.id).scalar()
         return round(avg or 0, 1)
 
+
 ############### this section contains data for the dynamic part
 class ProductSalesHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -105,11 +96,13 @@ class ProductSalesHistory(db.Model):
     date = db.Column(db.Date, nullable=False)
     sold_quantity = db.Column(db.Integer, default=0)
     sold_price = db.Column(db.Float, nullable=False)  # price per unit sold
-    target_daily_sales = db.Column(db.Float, nullable = False)
-    demand = db.Column(db.Float, nullable = False)
-    floor_price = db.Column(db.Float, nullable = False)
+    target_daily_sales = db.Column(db.Float, nullable=False)
+    demand = db.Column(db.Float, nullable=False)
+    floor_price = db.Column(db.Float, nullable=False)
 
     product = db.relationship('Product', backref=db.backref('sales_history', lazy='select'))
+
+
 ############### this section contains data for the dynamic part
 
 class PriceAlert(db.Model):
@@ -129,9 +122,32 @@ class PriceAlert(db.Model):
             kwargs['expires_at'] = datetime.utcnow() + timedelta(days=30)
         super().__init__(**kwargs)
 
+
+class SiteVisitCount(db.Model):
+    date = db.Column(db.Date, primary_key=True)
+    visit_count = db.Column(db.Integer, default=0)
+
+
 class Tag(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False, unique=True)
+
+class Orders(db.Model):
+    order_id = db.Column(db.String(20), primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user = db.relationship('User', backref='orders')
+    order_date = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    status = db.Column(db.String(20), default='pending')
+    total_amount = db.Column(db.Float, nullable=False)
+    total_pounds_sterling = db.Column(db.Float)
+    payment_method = db.Column(db.String(50))
+    shipping_address_id = db.Column(db.Integer, db.ForeignKey('address.id'))
+    shipping_address = db.relationship('Address', foreign_keys=[shipping_address_id])
+    billing_address_id = db.Column(db.Integer, db.ForeignKey('address.id'))
+    billing_address = db.relationship('Address', foreign_keys=[billing_address_id])
+    tracking_number = db.Column(db.String(50))
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, onupdate=func.now())
 
 class OrderItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -142,12 +158,3 @@ class OrderItem(db.Model):
 
     product = db.relationship('Product', backref='order_items')
     order = db.relationship('Orders', backref='items')
-
-
-class Comment(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
-    comment = db.Column(db.String(120), nullable=False)
-    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    rating = db.Column(db.Integer, nullable=True)
