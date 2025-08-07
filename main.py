@@ -335,7 +335,7 @@ def login():
                     new_item = CartItem(cart_id=cart.id, product_id=b['product_id'], quantity=b['quantity'])
                     db.session.add(new_item)
             db.session.commit()
-            session.pop('basket')  # optional: clear guest basket
+            session.pop('basket', None)  # optional: clear guest basket
         return redirect(url_for('home'))
 
     return render_template("login.html", form=form)
