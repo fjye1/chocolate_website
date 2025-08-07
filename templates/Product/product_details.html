@@ -1,95 +1,93 @@
 {% from "bootstrap5/form.html" import render_form %}
 {% extends "base.html" %}
+
 {% block content %}
 <div class="container mt-4">
     <div class="row">
+        <!-- Product Image -->
         <div class="col-md-6">
-            <img src="{{ url_for('static', filename=product.image) }}" class="img-fluid"
-                 alt="{{ product.name }}">
+            <img src="{{ url_for('static', filename=product.image) }}" class="img-fluid" alt="{{ product.name }}">
         </div>
+
+        <!-- Product Info -->
         <div class="col-md-6">
             <h2>{{ product.name }}</h2>
             <p>{{ product.description }}</p>
             <h4>£{{ product.price }}</h4>
             <p><strong>Weight:</strong> {{ product.weight }}g</p>
-            <div class="d-flex align-items-center gap-3">
-                <p class="mb-0"><strong>Quantity in Stock:</strong> {{ product.quantity }}</p>
-            </div>
+            <p><strong>Quantity in Stock:</strong> {{ product.quantity }}</p>
             <p><strong>Rating:</strong> {{ product.average_rating() }} ⭐</p>
 
-
+            <!-- Add to Cart Form -->
             <form method="POST" action="/add-to-cart">
                 <div class="d-flex align-items-center gap-2">
-                    <button type="button" class="qty-btn minus"
-                            style="border: none; background: transparent; padding: 0; outline: none;">
-                        <img src="{{ url_for('static', filename='assets/dash-circle.svg') }}" alt="minus"
-                             class="img-fluid"
-                             width="36">
+                    <!-- Quantity buttons -->
+                    <button type="button" class="qty-btn minus" style="border: none; background: transparent;">
+                        <img src="{{ url_for('static', filename='assets/dash-circle.svg') }}" alt="minus" width="36">
                     </button>
+
                     <input type="hidden" name="product_id" value="{{ product.id }}">
                     <input type="number" name="quantity" min="1" value="1" id="quantity-input"
-                           style="border: none; outline: none; width: 40px; text-align: center;">
-                    <button type="button" class="qty-btn plus"
-                            style="border: none; background: transparent; padding: 0; outline: none;">
-                        <img src="{{ url_for('static', filename='assets/plus-circle.svg') }}" alt="plus"
-                             class="img-fluid"
-                             width="36">
+                           style="border: none; width: 40px; text-align: center;">
+
+                    <button type="button" class="qty-btn plus" style="border: none; background: transparent;">
+                        <img src="{{ url_for('static', filename='assets/plus-circle.svg') }}" alt="plus" width="36">
                     </button>
 
-                    <button class="btn btn-primary rounded-pill px-3" type="submit"
-                            style="margin-left: 30px; outline: none;">
+                    <button class="btn btn-primary rounded-pill px-3" type="submit" style="margin-left: 30px;">
                         Add to Cart
                     </button>
-
-
                 </div>
-<!--                <h5 class="mt-4">Price Trend (Static)</h5>-->
-<!--                <img src="{{ url_for('static', filename='graphs/price_charts/product_' + product.id|string + '.png') }}"-->
-<!--                     alt="Static price trend chart" class="img-fluid mb-3">-->
 
-                <h5>Price Trend (Interactive)</h5>
+                <!-- Interactive Price Chart -->
+                <h5 class="mt-4">Price Trend (Interactive)</h5>
                 <canvas id="priceChart" height="200" class="w-100 mb-3"></canvas>
             </form>
+
+            <!-- Price Alert -->
+            {% if current_user.is_authenticated %}
+            <form id="price-alert-form" method="POST" action="{{ url_for('price_alert') }}">
+                <label for="target_price">Notify me if price drops to £:</label>
+                <input type="number" id="target_price" name="target_price" min="0" step="0.01"
+                       placeholder="Target price" required>
+                <input type="hidden" name="product_id" value="{{ product.id }}">
+                <button class="btn btn-success rounded-pill px-3" type="submit">Notify Me</button>
+            </form>
+            {% endif %}
+
+            <!-- Admin Delete Buttons -->
             {% if current_user.admin %}
             <button type="button" class="btn btn-danger btn-sm mt-3" data-bs-toggle="modal"
                     data-bs-target="#deleteModal{{ product.id }}">
                 🗑️
             </button>
-            {% endif %}
-            {% if current_user.admin %}
+
+            <!-- Delete Modal -->
             <div class="modal fade" id="deleteModal{{ product.id }}" tabindex="-1"
                  aria-labelledby="deleteModalLabel{{ product.id }}" aria-hidden="true">
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="deleteModalLabel{{ product.id }}">
-                                Delete Product: {{ product.name }}
-                            </h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                    aria-label="Close"></button>
+                            <h5 class="modal-title">Delete Product: {{ product.name }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
                             {% if product.order_items|length > 0 %}
-                            <p>This product has been ordered before.</p>
-                            <p>You can only soft delete (hide) it.</p>
+                            <p>This product has been ordered before.<br>You can only soft delete (hide) it.</p>
                             {% else %}
-                            <p>This product has no order history.</p>
-                            <p>You can hard delete (permanently remove) or soft delete it.</p>
+                            <p>This product has no order history.<br>You can hard delete or soft delete it.</p>
                             {% endif %}
                         </div>
                         <div class="modal-footer">
                             {% if product.order_items|length == 0 %}
-                            <form method="POST"
-                                  action="{{ url_for('hard_delete_product', product_id=product.id) }}">
+                            <form method="POST" action="{{ url_for('hard_delete_product', product_id=product.id) }}">
                                 <button type="submit" class="btn btn-danger">Hard Delete</button>
                             </form>
                             {% endif %}
-                            <form method="POST"
-                                  action="{{ url_for('soft_delete_product', product_id=product.id) }}">
+                            <form method="POST" action="{{ url_for('soft_delete_product', product_id=product.id) }}">
                                 <button type="submit" class="btn btn-warning">Soft Delete</button>
                             </form>
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel
-                            </button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                         </div>
                     </div>
                 </div>
@@ -98,87 +96,75 @@
         </div>
     </div>
 
-
-    <div class="comment">
-        <ul class="commentList list-unstyled m-0 p-0">
-            <!-- Show all comments -->
+    <!-- Comments Section -->
+    <div class="comment mt-4">
+        <ul class="commentList list-unstyled">
             {% for comment in product.comments %}
-            <li>
-                <div class="commenterImage">
-                    <img src="{{ comment.user.email | gravatar }}"/>
-                </div>
-
-                <div class="commentText">
-                    <div class="commentText">
+            <li class="mb-3">
+                <div class="d-flex">
+                    <img src="{{ comment.user.email | gravatar }}" class="me-3"/>
+                    <div>
                         {{ comment.comment | safe }}
-
                         <div class="rating">
                             {% for i in range(1, 6) %}
-                            {% if i <= comment.rating %}
-                            ⭐
-                            {% else %}
-                            ☆
-                            {% endif %}
+                            {% if i <= comment.rating %}⭐{% else %}☆{% endif %}
                             {% endfor %}
                         </div>
-
-                        <span class="sub-text">{{ comment.user.name }}</span>
+                        <small class="text-muted">{{ comment.user.name }}</small>
                     </div>
-                    {% endfor %}
                 </div>
+            </li>
+            {% endfor %}
         </ul>
     </div>
+
+    <!-- Comment Form -->
+    {% if can_comment %}
+    <p><strong>You can only submit one comment.</strong></p>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <label for="rating">Rating:</label>
+        <input type="range" id="rating" name="rating" min="1" max="5" value="3" oninput="updateStars(this.value)">
+        <div id="stars" class="star-display">⭐⭐⭐☆☆</div>
+        {{ form.comment_text.label }}
+        {{ form.comment_text(class="form-control") }}
+        <button type="submit" class="btn btn-primary mt-2">Submit</button>
+    </form>
+    {% endif %}
 </div>
-{% if can_comment %}
-<p><strong>you can only submit one comment, </strong></p>
-<form method="POST">
-    {{ form.hidden_tag() }}
 
-    <label for="rating">Rating:</label>
-    <input type="range" id="rating" name="rating" min="1" max="5" value="3" oninput="updateStars(this.value)">
-
-    <div id="stars" class="star-display">⭐⭐⭐☆☆</div>
-
-    {{ form.comment_text.label }}
-    {{ form.comment_text(class="form-control") }}
-
-    <button type="submit" class="btn btn-primary mt-2">Submit</button>
-</form>
-{% endif %}
-
-
+<!-- JS -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     const ctx = document.getElementById('priceChart').getContext('2d');
-const priceChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: {{ dates|tojson }},
-        datasets: [{
-            label: 'Price (£)',
-            data: {{ prices|tojson }},
-            borderColor: 'rgb(75, 192, 192)',
-            tension: 0.1
-        }]
-    },
-    options: {
-        plugins: {
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        const price = context.parsed.y;
-                        const index = context.dataIndex;
-                        const sales = {{ sales|tojson }}[index];  // 👈 Pass this from Flask
-
-                        return `£${price.toFixed(2)} (Sales: ${sales})`;
+    const priceChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ dates|tojson }},
+            datasets: [{
+                label: 'Price (£)',
+                data: {{ prices|tojson }},
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const price = context.parsed.y;
+                            const index = context.dataIndex;
+                            const sales = {{ sales|tojson }}[index];
+                            return `£${price.toFixed(2)} (Sales: ${sales})`;
+                        }
                     }
                 }
             }
         }
-    }
-});
+    });
 
-    // Quantity buttons
+    // Quantity button functionality
     document.querySelector('.qty-btn.minus').addEventListener('click', () => {
         const input = document.getElementById('quantity-input');
         let value = parseInt(input.value);
@@ -191,11 +177,10 @@ const priceChart = new Chart(ctx, {
         input.value = value + 1;
     });
 
-    // Live star rating preview
+    // Live star rating
     function updateStars(value) {
-        const fullStars = '⭐'.repeat(value);
-        const emptyStars = '☆'.repeat(5 - value);
-        document.getElementById('stars').textContent = fullStars + emptyStars;
+        document.getElementById('stars').textContent = '⭐'.repeat(value) + '☆'.repeat(5 - value);
     }
+    
 </script>
 {% endblock %}

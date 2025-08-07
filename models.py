@@ -2,7 +2,8 @@ import datetime
 from flask_login import UserMixin
 from sqlalchemy.sql import func
 from extension import db
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+
 
 
 product_tags = db.Table(
@@ -43,6 +44,7 @@ class User(db.Model, UserMixin):
     addresses = db.relationship('Address', backref='user', lazy=True)  # one-to-many
     comments = db.relationship('Comment', backref='user', lazy=True)
     carts = db.relationship('Cart', backref='user', lazy=True)
+    price_alerts = db.relationship('PriceAlert', back_populates='user')
 
     @property
     def current_address(self):
@@ -109,6 +111,23 @@ class ProductSalesHistory(db.Model):
 
     product = db.relationship('Product', backref=db.backref('sales_history', lazy='select'))
 ############### this section contains data for the dynamic part
+
+class PriceAlert(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    target_price = db.Column(db.Float, nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    notified = db.Column(db.Boolean, default=False)
+
+    user = db.relationship('User', back_populates='price_alerts')
+    product = db.relationship('Product')
+
+    def __init__(self, **kwargs):
+        expires_at = kwargs.get('expires_at')
+        if not expires_at:
+            kwargs['expires_at'] = datetime.utcnow() + timedelta(days=30)
+        super().__init__(**kwargs)
 
 class Tag(db.Model):
     id = db.Column(db.Integer, primary_key=True)

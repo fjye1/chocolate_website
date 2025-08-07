@@ -51,7 +51,7 @@ ckeditor = CKEditor(app)
 choc_email = os.getenv("CHOC_EMAIL")
 choc_password = os.getenv("CHOC_PASSWORD")
 
-from models import Cart, CartItem, Address, User, Orders, Product, Tag, OrderItem, Comment, ProductSalesHistory
+from models import Cart, CartItem, Address, User, Orders, Product, Tag, OrderItem, Comment, ProductSalesHistory, PriceAlert
 from functions import update_dynamic_prices, MAX_DAILY_CHANGE
 
 from tasks import simple_task
@@ -263,7 +263,27 @@ def product_detail(product_id):
                            prices=prices,
                            sales=sales)
 
+@app.route('/price-alert', methods=['POST'])
+@login_required
+def price_alert():
+    target_price = float(request.form.get('target_price'))
+    product_id = request.form.get('product_id')
+    product = Product.query.get(product_id)
+    expiry_days = 30
+    expires_at = datetime.utcnow() + timedelta(days=expiry_days)
 
+    alert = PriceAlert(
+        user_id=current_user.id,
+        product_id=product_id,
+        target_price=target_price,
+        expires_at=expires_at
+    )
+
+    db.session.add(alert)
+    db.session.commit()
+
+    flash(f"We will email you when {product.name} drops to £{target_price}!", 'success')
+    return redirect(url_for('product_detail', product_id=product_id))
 
 
 @app.route('/register', methods=["GET", "POST"])
