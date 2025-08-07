@@ -149,20 +149,34 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Chart.js price chart
     const ctx = document.getElementById('priceChart').getContext('2d');
-    const priceChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: {{ dates|tojson }},
-            datasets: [{
-                label: 'Price (£)',
-                data: {{ prices|tojson }},
-                borderColor: 'rgb(75, 192, 192)',
-                tension: 0.1
-            }]
+const priceChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: {{ dates|tojson }},
+        datasets: [{
+            label: 'Price (£)',
+            data: {{ prices|tojson }},
+            borderColor: 'rgb(75, 192, 192)',
+            tension: 0.1
+        }]
+    },
+    options: {
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const price = context.parsed.y;
+                        const index = context.dataIndex;
+                        const sales = {{ sales|tojson }}[index];  // 👈 Pass this from Flask
+
+                        return `£${price.toFixed(2)} (Sales: ${sales})`;
+                    }
+                }
+            }
         }
-    });
+    }
+});
 
     // Quantity buttons
     document.querySelector('.qty-btn.minus').addEventListener('click', () => {

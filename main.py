@@ -253,13 +253,15 @@ def product_detail(product_id):
     recent_sales = [s for s in product.sales_history if s.date >= start_date]
     dates = [s.date.strftime('%Y-%m-%d') for s in recent_sales]
     prices = [s.sold_price for s in recent_sales]
+    sales = [s.sold_quantity for s in recent_sales]
 
     return render_template("Product/product_details.html",
                            product=product,
                            form=comment_form,
                            can_comment=can_comment,
                            dates=dates,
-                           prices=prices)
+                           prices=prices,
+                           sales=sales)
 
 @app.route('/register', methods=["GET", "POST"])
 def register():
