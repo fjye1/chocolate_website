@@ -319,6 +319,23 @@ def login():
             return redirect(url_for('login'))
 
         login_user(user)
+        # ✅ Merge guest basket into DB cart on login
+        basket = session.get('basket', [])
+        if basket:
+            cart = get_user_cart(current_user.id)
+            if not cart:
+                cart = Cart(user_id=current_user.id, created_at=datetime.now(timezone.utc))
+                db.session.add(cart)
+                db.session.commit()
+            for b in basket:
+                existing_item = CartItem.query.filter_by(cart_id=cart.id, product_id=b['product_id']).first()
+                if existing_item:
+                    existing_item.quantity += b['quantity']
+                else:
+                    new_item = CartItem(cart_id=cart.id, product_id=b['product_id'], quantity=b['quantity'])
+                    db.session.add(new_item)
+            db.session.commit()
+            session.pop('basket')  # optional: clear guest basket
         return redirect(url_for('home'))
 
     return render_template("login.html", form=form)
