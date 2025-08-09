@@ -64,13 +64,20 @@ def run_task():
 LOG_PATH = 'logs/visit_log.txt'
 @app.before_request
 def count_visit():
+    # Skip if already counted this session today
     if 'counted_today' in session:
         return
 
+    # Skip static files (css, js, images)
+    if request.path.startswith('/static'):
+        return
+
+    # Log visit with timestamp, path, and user-agent
     log_line = f"{datetime.now()} | Path: {request.path} | User-Agent: {request.headers.get('User-Agent')}\n"
     with open(LOG_PATH, 'a') as f:
         f.write(log_line)
 
+    # Count visits by date
     today = date.today()
     counter = SiteVisitCount.query.get(today)
     if not counter:
@@ -79,6 +86,8 @@ def count_visit():
     else:
         counter.visit_count += 1
     db.session.commit()
+
+    # Mark session so user not counted again today
     session['counted_today'] = True
 
 def get_user_cart(user_id):
@@ -1001,12 +1010,15 @@ def admin_products():
     start_date = date.today() - timedelta(days=days_back)
 
     products = Product.query.options(joinedload(Product.sales_history)).all()
+    now = datetime.utcnow()
+
     for product in products:
         # Calculate days left for this product
         if product.expiration_date:
-            product.days_left = (product.expiration_date - datetime.utcnow()).days
+            product.days_left = (product.expiration_date - now).days
         else:
             product.days_left = None
+
         # Filter recent sales
         product.recent_sales = [
             sale for sale in product.sales_history
@@ -1022,6 +1034,13 @@ def admin_products():
 
         product.profit = total_revenue - total_cost
         product.profit_percent = (product.profit / total_revenue * 100) if total_revenue > 0 else 0
+
+        # Calculate average active price alert target_price
+        avg_alert_price = db.session.query(func.avg(PriceAlert.target_price)).filter(
+            PriceAlert.product_id == product.id,
+            PriceAlert.expires_at > now
+        ).scalar()
+        product.avg_alert_price = round(avg_alert_price or 0, 2)
 
     # Sort products by profit_percent descending
     products.sort(key=lambda p: p.profit_percent, reverse=True)

@@ -18,6 +18,7 @@
       <th rowspan="2">Tags</th>
       <th rowspan="2">Actions</th>
       <th rowspan="2">Dynamic Pricing</th>
+      <th rowspan="2">Price alert average</th>
 
       <!-- Parent header spanning 3 columns -->
       <th colspan="3" class="text-center">Last 28 Days</th>
@@ -112,6 +113,7 @@
                 </button>
             </form>
         </td>
+        <td>£{{'%.2f' % product.avg_alert_price | round(2)}}</td>
         <td>£{{ ns.total_revenue | round(2) }}</td>
         <td>£{{ profit | round(2) }}</td>
         <td>{{ profit_percent | round(1) }}%</td>
