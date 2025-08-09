@@ -61,10 +61,16 @@ def run_task():
     simple_task.delay()
     return "Task queued!"
 
+LOG_PATH = 'templates/Admin/visit_log.txt'
 @app.before_request
 def count_visit():
     if 'counted_today' in session:
         return
+
+    log_line = f"{datetime.now()} | Path: {request.path} | User-Agent: {request.headers.get('User-Agent')}\n"
+    with open(LOG_PATH, 'a') as f:
+        f.write(log_line)
+
     today = date.today()
     counter = SiteVisitCount.query.get(today)
     if not counter:
@@ -95,6 +101,11 @@ def admin_only(f):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+@app.route('/visit-log')
+def visit_log():
+    with open(LOG_PATH) as f:
+        content = f.read()
+    return f"<pre>{content}</pre>"
 
 gravatar = Gravatar(app,
                     size=100,
