@@ -1123,7 +1123,7 @@ def admin_statistics():
     labels = [record.date.strftime('%Y-%m-%d') for record in data]
     counts = [record.visit_count for record in data]
 
-    return render_template('admin/admin_statistics.html', labels=labels, counts=counts)
+    return render_template('Admin/admin_statistics.html', labels=labels, counts=counts)
 
 @app.route('/admin/settings')
 @login_required
