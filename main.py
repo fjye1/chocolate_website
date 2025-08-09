@@ -242,6 +242,7 @@ def search():
 def product_detail(product_id):
     product = Product.query.get_or_404(product_id)
     comment_form = CommentForm()
+    user_alert = PriceAlert.query.filter_by(user_id=current_user.id, product_id=product.id).first()
 
     # Comment logic
     if isinstance(current_user, AnonymousUserMixin):
@@ -285,16 +286,21 @@ def product_detail(product_id):
                            can_comment=can_comment,
                            dates=dates,
                            prices=prices,
-                           sales=sales)
+                           sales=sales,
+                           user_alert=user_alert)
 
 @app.route('/price-alert', methods=['POST'])
 @login_required
 def price_alert():
-    target_price = float(request.form.get('target_price'))
-    product_id = request.form.get('product_id')
+    target_price = float(request.form['target_price'])
+    product_id = request.form['product_id']
     product = Product.query.get(product_id)
     expiry_days = 30
     expires_at = datetime.utcnow() + timedelta(days=expiry_days)
+
+    if target_price < product.floor_price:
+        flash(f"Please enter a price above £{product.floor_price:.2f}", "warning")
+        return redirect(url_for('product_detail', product_id=product_id))
 
     alert = PriceAlert(
         user_id=current_user.id,
@@ -302,11 +308,12 @@ def price_alert():
         target_price=target_price,
         expires_at=expires_at
     )
-
     db.session.add(alert)
     db.session.commit()
 
-    flash(f"We will email you when {product.name} drops to £{target_price}!", 'success')
+    flash(f"We will email you when {product.name} drops to £{target_price:.2f}!\n"
+          f"You can manage your price alerts in your profile", 'success')
+
     return redirect(url_for('product_detail', product_id=product_id))
 
 
