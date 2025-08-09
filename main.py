@@ -61,7 +61,7 @@ def run_task():
     simple_task.delay()
     return "Task queued!"
 
-LOG_PATH = 'templates/Admin/visit_log.txt'
+LOG_PATH = 'logs/visit_log.txt'
 @app.before_request
 def count_visit():
     if 'counted_today' in session:
