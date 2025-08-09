@@ -57,6 +57,12 @@ body {
   }
 }
 
+.product-name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;  /* Limit to 2 lines */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 
 /* comment section css pulled from the training exersises i did */
 .comment {

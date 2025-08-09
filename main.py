@@ -175,6 +175,7 @@ def home():
 
 @app.route('/product')
 def product_page():
+
     product_key = request.args.get('product')
     selected_tags = request.args.getlist('tags')
     sort = request.args.get('sort')
@@ -207,6 +208,16 @@ def product_page():
     elif sort == 'rating_asc':
         products.sort(key=lambda p: p.average_rating())
 
+    product_ids = [p.id for p in products]
+    user_alerts = {}
+    if current_user.is_authenticated:
+        alerts = PriceAlert.query.filter(
+            PriceAlert.user_id == current_user.id,
+            PriceAlert.product_id.in_(product_ids)
+        ).all()
+        # Map product_id → alert
+        user_alerts = {alert.product_id: alert for alert in alerts}
+
     all_tags = (
         db.session.query(Tag, func.count(Product.id).label("tag_count"))
         .join(Product.tags)
@@ -222,7 +233,8 @@ def product_page():
         products=products,
         all_tags=all_tags,
         selected_tags=selected_tags,
-        sort=sort
+        sort=sort,
+        user_alerts=user_alerts
     )
 
 @app.route('/search')
