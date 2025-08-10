@@ -72,7 +72,7 @@ def count_visit():
     if request.path.startswith('/static'):
         return
 
-    # Skip known bots/automated requests
+    # Check if request looks like a bot
     user_agent = request.headers.get('User-Agent', '').lower()
     bot_signatures = [
         'go-http-client',  # Render health checks, Go bots
@@ -81,14 +81,15 @@ def count_visit():
         'spider',          # web crawlers
     ]
     if any(sig in user_agent for sig in bot_signatures):
-        return
+        # Don't log bots, but DO serve the page
+        return None  # continue processing request
 
-    # Log visit with timestamp, path, and user-agent
+    # Log visit
     log_line = f"{datetime.now()} | Path: {request.path} | User-Agent: {request.headers.get('User-Agent')}\n"
     with open(LOG_PATH, 'a') as f:
         f.write(log_line)
 
-    # Count visits by date
+    # Count visits
     today = date.today()
     counter = SiteVisitCount.query.get(today)
     if not counter:
@@ -98,9 +99,8 @@ def count_visit():
         counter.visit_count += 1
     db.session.commit()
 
-    # Mark session so user not counted again today
+    # Mark so not counted again today
     session['counted_today'] = True
-
 def get_user_cart(user_id):
     return Cart.query.filter_by(user_id=user_id).first()
 
