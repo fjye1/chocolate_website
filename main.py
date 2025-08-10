@@ -72,6 +72,17 @@ def count_visit():
     if request.path.startswith('/static'):
         return
 
+    # Skip known bots/automated requests
+    user_agent = request.headers.get('User-Agent', '').lower()
+    bot_signatures = [
+        'go-http-client',  # Render health checks, Go bots
+        'curl',            # command-line requests
+        'bot',             # generic bot keyword
+        'spider',          # web crawlers
+    ]
+    if any(sig in user_agent for sig in bot_signatures):
+        return
+
     # Log visit with timestamp, path, and user-agent
     log_line = f"{datetime.now()} | Path: {request.path} | User-Agent: {request.headers.get('User-Agent')}\n"
     with open(LOG_PATH, 'a') as f:
