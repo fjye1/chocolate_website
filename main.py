@@ -66,11 +66,11 @@ LOG_PATH = 'logs/visit_log.txt'
 def count_visit():
     # Skip if already counted this session today
     if 'counted_today' in session:
-        return
+        return None
 
     # Skip static files (css, js, images)
     if request.path.startswith('/static'):
-        return
+        return None
 
     # Check if request looks like a bot
     user_agent = request.headers.get('User-Agent', '').lower()
