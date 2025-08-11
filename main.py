@@ -79,6 +79,7 @@ def count_visit():
         'curl',            # command-line requests
         'bot',             # generic bot keyword
         'spider',          # web crawlers
+        'python-requests' # from server
     ]
     if any(sig in user_agent for sig in bot_signatures):
         # Don't log bots, but DO serve the page
