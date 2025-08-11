@@ -81,15 +81,20 @@
                     <li><a href="{{ url_for('login') }}" class="nav-link px-2 link-body-emphasis">Login</a></li>
                     {% endif %}
                     <li><a href="{{ url_for('home') }}" class="nav-link px-2 link-body-emphasis">Home</a></li>
-                    <li><a href="{{ url_for('product_page') }}" class="nav-link px-2 link-body-emphasis">Products</a></li>
+                    <li><a href="{{ url_for('product_page') }}" class="nav-link px-2 link-body-emphasis">Products</a>
+                    </li>
 
                 </ul>
             </div>
 
             <!-- 🔶 Centered logo -->
             <div class="center-logo">
-                <img src="{{ url_for('static', filename='images/designs_first_draft.png') }}" alt="Site Logo"
-                     width="200" height="200">
+                <img src="{{ url_for('static', filename='images/Logo_small.png') }}"
+                     alt="Site Logo"
+                     width="200"
+                     height="200"
+                     loading="lazy"
+                     class=lazy-swap>
             </div>
 
             <!-- Right section -->
@@ -126,18 +131,22 @@
 </header>
 <div class="hide-under-769">
     <div class="second-bg-header">
-        <div class="header-second-grid " >
+        <div class="header-second-grid ">
             <div class="left-second-section" style="height: 30px;">
                 <ul class="nav mb-0">
-                    <li><a href="{{ url_for('product_page') }}?product=Milky" class="nav-link px-2 link-body-emphasis">Milky</a></li>
-                    <li><a href="{{ url_for('product_page') }}?product=Saucy" class="nav-link px-2 link-body-emphasis">Saucy</a></li>
+                    <li><a href="{{ url_for('product_page') }}?product=Milky" class="nav-link px-2 link-body-emphasis">Milky</a>
+                    </li>
+                    <li><a href="{{ url_for('product_page') }}?product=Saucy" class="nav-link px-2 link-body-emphasis">Saucy</a>
+                    </li>
                 </ul>
             </div>
             <div class="center-logo" style="height: 30px;"></div>
             <div class="right-second-section" style="height: 30px;">
                 <ul class="nav mb-0">
-                    <li><a href="{{ url_for('product_page') }}?product=Crunchy" class="nav-link px-2 link-body-emphasis">Crunchy</a></li>
-                    <li><a href="{{ url_for('product_page') }}?product=Special" class="nav-link px-2 link-body-emphasis">Special</a></li>
+                    <li><a href="{{ url_for('product_page') }}?product=Crunchy"
+                           class="nav-link px-2 link-body-emphasis">Crunchy</a></li>
+                    <li><a href="{{ url_for('product_page') }}?product=Special"
+                           class="nav-link px-2 link-body-emphasis">Special</a></li>
                 </ul>
             </div>
         </div>

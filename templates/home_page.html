@@ -34,12 +34,12 @@
     Welcome to Regal Chocolate
 </h1>
 {% if current_user.admin %}
-    <div class="pt-3">
-        <a href="{{ url_for('create_product') }}" class="btn btn-primary mb-3">
-            + Create New Product
-        </a>
-    </div>
-    {% endif %}
+<div class="pt-3">
+    <a href="{{ url_for('create_product') }}" class="btn btn-primary mb-3">
+        + Create New Product
+    </a>
+</div>
+{% endif %}
 <h2 style="text-align: center;">
     Best Sellers
 </h2>
@@ -48,9 +48,10 @@
 
         <!-- Left image column -->
         <div class="col-12 col-md-4 hide-under-769">
-            <img src="{{ url_for('static', filename='images/choc_hero_2.png') }}"
+            <img src="{{ url_for('static', filename='images/hero_1_small.png') }}"
                  alt="photo"
-                 class="full-bleed-left"
+                 class="full-bleed-left lazy-swap"
+                 loading="lazy"
             >
         </div>
 
@@ -118,9 +119,10 @@
 
             <!-- Left image column -->
             <div class="col-12 col-md-4 hide-under-769">
-                <img src="{{ url_for('static', filename='images/choc_hero_1.png') }}"
+                <img src="{{ url_for('static', filename='images/hero_2_small.png') }}"
                      alt="photo"
-                     class="full-bleed-left"
+                     class="full-bleed-left lazy-swap"
+                     loading="lazy"
                 >
             </div>
 
@@ -139,17 +141,26 @@
                                     <h5 class="card-title">{{ product.name }}</h5>
                                     <p><strong>Rating:</strong> {{ product.average_rating() }} ⭐</p>
                                     <p class="card-text"><strong>£{{ product.price }}</strong></p>
+                                </div>
                             </a>
                         </div>
                     </div>
+                    {% endif %}
+                    {% endfor %}
                 </div>
-                {% endif %}
-                {% endfor %}
             </div>
         </div>
     </div>
     <hr>
+    <script>
+        window.addEventListener('load', () => {
+          const images = document.querySelectorAll('.lazy-swap');
 
+          images.forEach(img => {
+            // Replace small with large by changing the filename (customize as needed)
+            img.src = img.src.replace('_small', '_large');
+          });
+        });
+    </script>
     {% endblock %}
 
-    f8f9fa
