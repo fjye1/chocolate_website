@@ -101,6 +101,7 @@ def count_visit():
 
     # Mark so not counted again today
     session['counted_today'] = True
+
 def get_user_cart(user_id):
     return Cart.query.filter_by(user_id=user_id).first()
 
@@ -782,14 +783,12 @@ def internal_invoice(order_id, secret):
 def payment_failure():
     return render_template('payment_failure.html')
 
-
 def link_callback(uri, rel):
     # Convert /static/... to the real filesystem path
     if uri.startswith('/static/'):
         path = os.path.join(current_app.root_path, uri[1:])
         return path
     return uri
-
 
 @app.route('/invoice/<order_id>/download')
 @login_required
@@ -937,42 +936,17 @@ def add_tracking(order_id):
         order.tracking_number = form.tracking_code.data
         db.session.commit()
 
-        # Render invoice HTML
-        invoice_html = render_template('invoice.html', order=order)
+        # Call celery task asynchronously to send the tracking email + invoice
+        celery.send_task(
+            'tasks.send_tracking_email_task',
+            args=[order.order_id, order.user.email, order.tracking_number]
+        )
 
-        # Convert to PDF
-        pdf_stream = io.BytesIO()
-        pisa.CreatePDF(invoice_html, dest=pdf_stream, link_callback=link_callback)
-        pdf = pdf_stream.getvalue()
-
-        # Prepare email
-        msg = EmailMessage()
-        msg['Subject'] = f"Your Order Has Shipped - {order.order_id}"
-        msg['From'] = "your_email@example.com"
-        msg['To'] = order.user.email
-        msg.set_content(f"""Hi {order.user.name},
-
-Your order has been shipped!
-
-Tracking number: {order.tracking_number}
-
-Your invoice is attached.
-
-Thanks for shopping with us!
-""")
-
-        # Attach invoice
-        msg.add_attachment(pdf, maintype='application', subtype='pdf', filename=f"Invoice_{order.order_id}.pdf")
-
-        # Send
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-            smtp.login(user=choc_email, password=choc_password)
-            smtp.send_message(msg)
-
-        flash("Tracking number added and invoice emailed.", "success")
+        flash("Tracking number added and email queued for sending.", "success")
         return redirect(url_for('admin'))
 
     return render_template('Admin/add_tracking.html', form=form, order=order)
+
 
 
 @app.route('/create-product', methods=['GET', 'POST'])
