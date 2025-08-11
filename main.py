@@ -275,14 +275,14 @@ def search():
 def product_detail(product_id):
     product = Product.query.get_or_404(product_id)
     comment_form = CommentForm()
-    user_alert = PriceAlert.query.filter_by(user_id=current_user.id, product_id=product.id).first()
 
-    # Comment logic
     if isinstance(current_user, AnonymousUserMixin):
+        user_alert = None
         has_purchased = False
         already_commented = False
         can_comment = False
     else:
+        user_alert = PriceAlert.query.filter_by(user_id=current_user.id, product_id=product.id).first()
         has_purchased = db.session.query(OrderItem).join(Orders).filter(
             Orders.user_id == current_user.id,
             OrderItem.product_id == product_id

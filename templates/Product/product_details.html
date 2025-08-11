@@ -45,16 +45,17 @@
             </form>
 
             <!-- Price Alert -->
-            {% if current_user.is_authenticated and user_alert %}
-            <div class="alert alert-success d-flex align-items-center p-2 mb-2 rounded shadow-sm"
-                 role="alert" style="font-weight: 600;">
-                <svg xmlns="http://www.w3.org/2000/svg" class="bi bi-bell-fill me-2" width="30"
-                     height="20" fill="currentColor" viewBox="0 0 16 16">
+            {% if current_user.is_authenticated %}
+            {% if user_alert %}
+            <div class="alert alert-success d-flex align-items-center p-2 mb-2 rounded shadow-sm" role="alert"
+                 style="font-weight: 600;">
+                <!-- Bell icon SVG -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="bi bi-bell-fill me-2" width="30" height="20"
+                     fill="currentColor" viewBox="0 0 16 16">
                     <path d="M8 16a2 2 0 0 0 1.985-1.75H6.015A2 2 0 0 0 8 16zm.104-14.812A1.5 1.5 0 1 1 9.896 1.188c-.486 0-.93.268-1.147.676a1.991 1.991 0 0 0-.645.144zM8 1a3 3 0 0 0-3 3v3c0 1.098-.605 2.207-1.1 2.808A.5.5 0 0 0 4 11h8a.5.5 0 0 0 .2-.192c-.495-.6-1.1-1.71-1.1-2.808V4a3 3 0 0 0-3-3z"/>
                 </svg>
                 <span>Price alert set at £{{ '%.2f' % user_alert.target_price }}</span>
             </div>
-            <!-- Optionally add a button to delete or update alert -->
             {% else %}
             <form id="price-alert-form" method="POST" action="{{ url_for('price_alert') }}">
                 <label for="target_price">Notify me if price drops to £:</label>
@@ -63,6 +64,7 @@
                 <input type="hidden" name="product_id" value="{{ product.id }}">
                 <button class="btn btn-success rounded-pill px-3" type="submit">Notify Me</button>
             </form>
+            {% endif %}
             {% endif %}
 
             <!-- Admin Delete Buttons -->
