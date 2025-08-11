@@ -309,6 +309,7 @@ def product_detail(product_id):
     # Price history chart data
     start_date = date.today() - timedelta(days=28)
     recent_sales = [s for s in product.sales_history if s.date >= start_date]
+    recent_sales.sort(key=lambda s: s.date)
     dates = [s.date.strftime('%Y-%m-%d') for s in recent_sales]
     prices = [s.sold_price for s in recent_sales]
     sales = [s.sold_quantity for s in recent_sales]
