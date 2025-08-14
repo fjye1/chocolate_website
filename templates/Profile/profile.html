@@ -12,10 +12,11 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item"><strong>Name:</strong> {{ current_user.name }}</li>
             <li class="list-group-item"><strong>Email:</strong> {{ current_user.email }}</li>
-            {% if current_user.addresses %}
-            <li class="list-group-item"><strong>Address:</strong> {{ current_user.addresses[0].street }}</li>
-            <li class="list-group-item"><strong>City:</strong> {{ current_user.addresses[0].city }}</li>
-            <li class="list-group-item"><strong>Postcode:</strong> {{ current_user.addresses[0].postcode }}</li>
+            {% set current_addr = current_user.addresses | selectattr("current_address") | first %}
+            {% if current_addr %}
+            <li class="list-group-item"><strong>Address:</strong> {{ current_addr.street }}</li>
+            <li class="list-group-item"><strong>City:</strong> {{ current_addr.city }}</li>
+            <li class="list-group-item"><strong>Postcode:</strong> {{ current_addr.postcode }}</li>
             {% else %}
             <li class="list-group-item">No address on file</li>
             {% endif %}

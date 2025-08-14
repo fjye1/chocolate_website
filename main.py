@@ -716,8 +716,9 @@ def payment_success():
         flash("Your cart is empty.", "warning")
         return redirect(url_for('home'))
 
-    shipping_address = Address.query.filter_by(user_id=current_user.id).first()
-    billing_address = Address.query.filter_by(user_id=current_user.id).first()
+    shipping_address = Address.query.filter_by(user_id=current_user.id, current_address=True).first()
+    billing_address = Address.query.filter_by(user_id=current_user.id, current_address=True).first()
+
     if not shipping_address or not billing_address:
         flash("Missing address info.", "danger")
         return redirect(url_for('checkout'))
