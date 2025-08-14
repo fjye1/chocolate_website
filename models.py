@@ -12,6 +12,7 @@ class Address(db.Model):
     city = db.Column(db.String(100))
     postcode = db.Column(db.String(20))
     current_address = db.Column(db.Boolean, default=False)
+    deleted = db.Column(db.Boolean, default=False)
 
 
 class Cart(db.Model):

@@ -489,12 +489,17 @@ def profile_addresses():
 @login_required
 def delete_address(address_id):
     address = Address.query.get_or_404(address_id)
+
+    # Check ownership
     if address.user_id != current_user.id:
         flash("You can't delete this address.", "danger")
         return redirect(url_for('profile_addresses'))
-    db.session.delete(address)
+
+    # Soft delete instead of hard delete
+    address.deleted = True
     db.session.commit()
-    flash("Address deleted.", "success")
+
+    flash("Address removed from your profile.", "success")
     return redirect(url_for('profile_addresses'))
 
 @app.route('/set-current-address/<int:address_id>', methods=['POST'])
