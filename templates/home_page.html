@@ -101,7 +101,8 @@
                         </div>
 
                         <footer class="blockquote-footer mt-2">
-                            {{ comment.user.name }} — <cite title="Product">{{ comment.product.name }}</cite>
+                            {{ comment.user.name.split(' ')[0] }} — <cite title="Product">{{ comment.product.name
+                            }}</cite>
                         </footer>
                     </blockquote>
                 </div>
