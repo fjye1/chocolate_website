@@ -1,11 +1,11 @@
 from flask import Flask, render_template, redirect, url_for, flash, request, abort, jsonify, make_response, current_app, \
     session
 import csv
-import smtplib
+
 from sqlalchemy.orm import joinedload
 from xhtml2pdf import pisa
 import io
-from email.message import EmailMessage
+
 from flask_gravatar import Gravatar
 from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
@@ -14,12 +14,12 @@ from flask_login import LoginManager, login_user, current_user, login_required, 
     AnonymousUserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
-from sqlalchemy.sql import func, asc, nullslast, nullsfirst, case
+
 from sqlalchemy import cast, Date, literal
 from datetime import datetime, timedelta, timezone, date
 import stripe
-import os, uuid
-from werkzeug.utils import secure_filename
+import  uuid
+
 from dotenv import load_dotenv
 import os
 from extension import db
