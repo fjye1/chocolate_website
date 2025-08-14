@@ -878,76 +878,52 @@ def hard_delete_product(product_id):
 @login_required
 @admin_only
 def admin():
-    import matplotlib
-    matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
-    import seaborn as sns
-    from io import BytesIO
-    import base64
-    import pandas as pd
-    from collections import defaultdict
-    from sqlalchemy import func, extract
+    from datetime import datetime, timedelta, timezone
+    from sqlalchemy import func, cast, Date
 
-    # Use timezone-aware UTC now
-    one_week_ago = datetime.now(timezone.utc).date() - timedelta(days=6)  # last 7 days including today
     today = datetime.now(timezone.utc).date()
+    start_date = today - timedelta(days=27)  # last 28 days including today
 
     if db.engine.name == 'sqlite':
-        # SQLite version
         sales_data = (
             db.session.query(
                 func.date(Orders.created_at).label("date"),
                 func.sum(Orders.total_amount).label("sales")
             )
-            .filter(func.date(Orders.created_at) >= one_week_ago)
+            .filter(func.date(Orders.created_at) >= start_date)
             .filter(func.date(Orders.created_at) <= today)
             .group_by(func.date(Orders.created_at))
             .order_by(func.date(Orders.created_at))
             .all()
         )
     else:
-        # Postgres version
         sales_data = (
             db.session.query(
                 cast(Orders.created_at, Date).label('date'),
                 func.sum(Orders.total_amount).label('sales')
             )
-            .filter(cast(Orders.created_at, Date) >= one_week_ago)
+            .filter(cast(Orders.created_at, Date) >= start_date)
             .filter(cast(Orders.created_at, Date) <= today)
             .group_by('date')
             .order_by('date')
             .all()
         )
 
-    sales_dict = {
-        date_obj: sales
-        for date_obj, sales in sales_data
-    }
+    # Convert to lists for JS
+    sales_dict = {d: s or 0 for d, s in sales_data}
+    day_labels = [(start_date + timedelta(days=i)).strftime('%d %b') for i in range(28)]
+    sales_values = [sales_dict.get(start_date + timedelta(days=i), 0) for i in range(28)]
 
-    day_dates = [one_week_ago + timedelta(days=i) for i in range(7)]
-    day_labels = [d.strftime('%d %b') for d in day_dates]  # e.g. 15 Jun
-
-    sales_values = [sales_dict.get(d, 0) for d in day_dates]
-
-    df = pd.DataFrame({
-        'Day': day_labels,
-        'Sales': sales_values
-    })
-    plt.figure(figsize=(10, 5))
-    sns.barplot(data=df, x='Day', y='Sales', color='skyblue')
-    plt.xticks(rotation=45)
-    plt.title("Last Week's Sales")
-    buf = BytesIO()
-    plt.tight_layout()
-    plt.savefig(buf, format='png')
-    buf.seek(0)
-    chart_base64 = base64.b64encode(buf.read()).decode('utf-8')
-    plt.close()
-
-    total_sales_last_week = sum(s or 0 for s in sales_dict.values())
+    total_sales_last_28_days = sum(sales_values)
     orders = Orders.query.filter(Orders.tracking_number.is_(None)).all()
 
-    return render_template('Admin/admin.html', chart=chart_base64, orders=orders, total=total_sales_last_week)
+    return render_template(
+        'Admin/admin.html',
+        orders=orders,
+        total=total_sales_last_28_days,
+        day_labels=day_labels,
+        sales_values=sales_values
+    )
 
 
 @app.route('/admin/order/<string:order_id>/add-tracking', methods=['GET', 'POST'])

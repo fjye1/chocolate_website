@@ -7,13 +7,18 @@
 <div class="col-md-9">
     <div class="row">
         <!-- Sales Chart -->
-        <div class="col-md-6">
-            <h3>Weekly Sales</h3>
-            <img src="data:image/png;base64,{{ chart }}" class="img-fluid" alt="Sales Chart">
-        </div>
-        <div class="col-md-6 text-center">
-            <h3>Total Sales Last Week</h3>
-            <h1>£{{ total | round(2) }}</h1>
+        <div class="row mt-4">
+            <!-- Sales Chart (large column) -->
+            <div class="col-md-9">
+                <h3>Last 28 Days Sales</h3>
+                <canvas id="salesChart"></canvas>
+            </div>
+
+            <!-- Total Sales (smaller column) -->
+            <div class="col-md-3 text-center">
+                <h3>Total Sales Last 28 Days</h3>
+                <h1>£{{ total | round(2) }}</h1>
+            </div>
         </div>
         <!-- Unfulfilled Orders -->
         <div class="container mt-4">
@@ -62,4 +67,32 @@
 <form action="{{ url_for('run_dynamic_pricing') }}" method="get">
     <button type="submit" class="btn btn-warning">Run Dynamic Pricing</button>
 </form>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('salesChart').getContext('2d');
+const salesChart = new Chart(ctx, {
+    type: 'line',  // changed to line
+    data: {
+        labels: {{ day_labels|tojson }},
+        datasets: [{
+            label: 'Sales (£)',
+            data: {{ sales_values|tojson }},
+            backgroundColor: 'rgba(135, 206, 235, 0.2)',
+            borderColor: 'skyblue',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.3  // smooth line
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: { beginAtZero: true }
+        },
+        plugins: {
+            legend: { display: true, position: 'top' }
+        }
+    }
+});
+</script>
 {% endblock %}
