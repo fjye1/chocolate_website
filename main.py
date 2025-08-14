@@ -22,12 +22,10 @@ from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 import os
 from extension import db
-from celery import Celery
+
 load_dotenv()
 
-REDIS_URL = os.getenv("REDIS_URL")
 
-celery = Celery('tasks', broker=REDIS_URL, backend=REDIS_URL)
 
 login_manager = LoginManager()
 
@@ -51,7 +49,8 @@ ckeditor = CKEditor(app)
 choc_email = os.getenv("CHOC_EMAIL")
 choc_password = os.getenv("CHOC_PASSWORD")
 
-from models import Cart, CartItem, Address, User, Orders, Product, Tag, OrderItem, Comment, ProductSalesHistory, PriceAlert,SiteVisitCount
+from models import Cart, CartItem, Address, User, Orders, Product, Tag, OrderItem, Comment, ProductSalesHistory, \
+    PriceAlert, SiteVisitCount, Tasks
 from functions import update_dynamic_prices, MAX_DAILY_CHANGE
 
 from tasks import simple_task
@@ -755,12 +754,17 @@ def payment_success():
 
     db.session.commit()
 
-    # Queue background task to generate invoice and send email
+    # save task to the database
     try:
-        celery.send_task(
-            'tasks.send_invoice_email_task',
-            args=[order.order_id, current_user.email]
+        new_task = Tasks(
+            task_name="send_invoice",
+            arg1=order.order_id,
+            arg2=order.user.email
         )
+        db.session.add(new_task)
+        db.session.commit()
+
+
     except Exception as e:
         print(f"[Invoice Queue Error]: {e}")
         flash("Order complete, but invoice could not be queued for email.", "warning")
@@ -939,16 +943,21 @@ def add_tracking(order_id):
         order.tracking_number = form.tracking_code.data
         db.session.commit()
 
-        # Call celery task asynchronously to send the tracking email + invoice
-        celery.send_task(
-            'tasks.send_tracking_email_task',
-            args=[order.order_id, order.user.email, order.tracking_number]
+        # Add task to DB instead of calling Celery
+        new_task = Tasks(
+            task_name="send_tracking",
+            arg1=order.order_id,
+            arg2=order.user.email,
+            arg3=order.tracking_number
         )
+        db.session.add(new_task)
+        db.session.commit()
 
-        flash("Tracking number added and email queued for sending.", "success")
+        flash("Tracking number added and task queued for sending email.", "success")
         return redirect(url_for('admin'))
 
     return render_template('Admin/add_tracking.html', form=form, order=order)
+
 
 
 
