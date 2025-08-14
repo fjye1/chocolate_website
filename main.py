@@ -1,5 +1,5 @@
-
-from flask import Flask, render_template, redirect, url_for, flash, request, abort, jsonify, make_response, current_app, session
+from flask import Flask, render_template, redirect, url_for, flash, request, abort, jsonify, make_response, current_app, \
+    session
 import csv
 import smtplib
 from sqlalchemy.orm import joinedload
@@ -10,7 +10,8 @@ from flask_gravatar import Gravatar
 from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
 from forms import RegisterForm, LoginForm, AddAddress, ProductForm, CommentForm, StockForm, TrackingForm
-from flask_login import LoginManager, login_user, current_user, login_required, logout_user, UserMixin, AnonymousUserMixin
+from flask_login import LoginManager, login_user, current_user, login_required, logout_user, UserMixin, \
+    AnonymousUserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from sqlalchemy.sql import func, asc, nullslast, nullsfirst, case
@@ -24,8 +25,6 @@ import os
 from extension import db
 
 load_dotenv()
-
-
 
 login_manager = LoginManager()
 
@@ -55,12 +54,16 @@ from functions import update_dynamic_prices, MAX_DAILY_CHANGE
 
 from tasks import simple_task
 
+
 @app.route("/run_task", methods=["GET"])
 def run_task():
     simple_task.delay()
     return "Task queued!"
 
+
 LOG_PATH = 'logs/visit_log.txt'
+
+
 @app.before_request
 def count_visit():
     # Skip if already counted this session today
@@ -75,10 +78,10 @@ def count_visit():
     user_agent = request.headers.get('User-Agent', '').lower()
     bot_signatures = [
         'go-http-client',  # Render health checks, Go bots
-        'curl',            # command-line requests
-        'bot',             # generic bot keyword
-        'spider',          # web crawlers
-        'python-requests' # from server
+        'curl',  # command-line requests
+        'bot',  # generic bot keyword
+        'spider',  # web crawlers
+        'python-requests'  # from server
     ]
     if any(sig in user_agent for sig in bot_signatures):
         # Don't log bots, but DO serve the page
@@ -102,6 +105,7 @@ def count_visit():
     # Mark so not counted again today
     session['counted_today'] = True
 
+
 def get_user_cart(user_id):
     return Cart.query.filter_by(user_id=user_id).first()
 
@@ -122,11 +126,13 @@ def admin_only(f):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+
 @app.route('/visit-log')
 def visit_log():
     with open(LOG_PATH) as f:
         content = f.read()
     return f"<pre>{content}</pre>"
+
 
 gravatar = Gravatar(app,
                     size=100,
@@ -136,9 +142,6 @@ gravatar = Gravatar(app,
                     force_lower=False,
                     use_ssl=False,
                     base_url=None)
-
-
-
 
 # ✅ must be run before adding data
 with app.app_context():
@@ -167,11 +170,13 @@ def load_csv_data():
 with app.app_context():
     load_csv_data()
 
+
 @app.route("/run-dynamic-pricing")
 def run_dynamic_pricing():
     update_dynamic_prices()
     flash("Dynamic pricing updated successfully!", "success")
     return redirect(url_for("product_page"))
+
 
 @app.route("/toggle-dynamic/<int:product_id>", methods=["POST"])
 def toggle_dynamic_pricing(product_id):
@@ -180,9 +185,9 @@ def toggle_dynamic_pricing(product_id):
     db.session.commit()
     return redirect(request.referrer or url_for("admin_products"))
 
+
 @app.route("/")
 def home():
-
     admin = current_user.admin if current_user.is_authenticated else False
     random_comments = Comment.query.order_by(func.random()).limit(3).all()
     products = Product.query.filter_by(is_active=True).all()
@@ -194,9 +199,9 @@ def home():
                            comments=random_comments,
                            sorted_products=sorted_products)
 
+
 @app.route('/product')
 def product_page():
-
     product_key = request.args.get('product')
     selected_tags = request.args.getlist('tags')
     sort = request.args.get('sort')
@@ -257,6 +262,7 @@ def product_page():
         sort=sort,
         user_alerts=user_alerts
     )
+
 
 @app.route('/search')
 def search():
@@ -322,6 +328,7 @@ def product_detail(product_id):
                            prices=prices,
                            sales=sales,
                            user_alert=user_alert)
+
 
 @app.route('/price-alert', methods=['POST'])
 @login_required
@@ -435,11 +442,13 @@ def login():
 def profile():
     return render_template("Profile/profile.html")
 
+
 @app.route('/profile/price_alerts')
 def profile_price_alerts():
     alerts = current_user.price_alerts
 
     return render_template("Profile/profile_price_alerts.html", alerts=alerts)
+
 
 @app.route('/delete-alert/<int:alert_id>', methods=['POST'])
 @login_required
@@ -453,6 +462,7 @@ def delete_alert(alert_id):
     db.session.commit()
     flash("Price alert deleted.", "success")
     return redirect(url_for('profile_price_alerts'))
+
 
 @app.route('/profile/orders')
 def profile_orders():
@@ -485,6 +495,7 @@ def profile_addresses():
 
     return render_template("Profile/profile_addresses.html", form=form)
 
+
 @app.route('/profile/address/delete/<int:address_id>', methods=['POST'])
 @login_required
 def delete_address(address_id):
@@ -501,6 +512,7 @@ def delete_address(address_id):
 
     flash("Address removed from your profile.", "success")
     return redirect(url_for('profile_addresses'))
+
 
 @app.route('/set-current-address/<int:address_id>', methods=['POST'])
 @login_required
@@ -641,6 +653,7 @@ def checkout():
 
     total = sum(item.product.price * item.quantity for item in cart.items)
     return render_template('checkout.html', total=total)
+
 
 @app.route('/cart-data')
 @login_required
@@ -784,6 +797,7 @@ def invoice(order_id):
     order = Orders.query.filter_by(order_id=order_id, user_id=current_user.id).first_or_404()
     return render_template('invoice.html', order=order)
 
+
 @app.route('/internal-invoice/<string:order_id>/<string:secret>')
 def internal_invoice(order_id, secret):
     if secret != os.getenv("SECRET"):
@@ -791,9 +805,11 @@ def internal_invoice(order_id, secret):
     order = Orders.query.filter_by(order_id=order_id).first_or_404()
     return render_template('invoice.html', order=order)
 
+
 @app.route('/payment-failure')
 def payment_failure():
     return render_template('payment_failure.html')
+
 
 def link_callback(uri, rel):
     # Convert /static/... to the real filesystem path
@@ -801,6 +817,7 @@ def link_callback(uri, rel):
         path = os.path.join(current_app.root_path, uri[1:])
         return path
     return uri
+
 
 @app.route('/invoice/<order_id>/download')
 @login_required
@@ -910,7 +927,6 @@ def admin():
     day_dates = [one_week_ago + timedelta(days=i) for i in range(7)]
     day_labels = [d.strftime('%d %b') for d in day_dates]  # e.g. 15 Jun
 
-
     sales_values = [sales_dict.get(d, 0) for d in day_dates]
 
     df = pd.DataFrame({
@@ -929,15 +945,10 @@ def admin():
     plt.close()
 
     total_sales_last_week = sum(s or 0 for s in sales_dict.values())
-    orders = Orders.query.order_by(
-        case(
-            (Orders.tracking_number == None, 0),
-            else_=1
-        ),
-        Orders.created_at.asc()
-    ).all()
+    orders = Orders.query.filter(Orders.tracking_number.is_(None)).all()
 
     return render_template('Admin/admin.html', chart=chart_base64, orders=orders, total=total_sales_last_week)
+
 
 @app.route('/admin/order/<string:order_id>/add-tracking', methods=['GET', 'POST'])
 def add_tracking(order_id):
@@ -962,8 +973,6 @@ def add_tracking(order_id):
         return redirect(url_for('admin'))
 
     return render_template('Admin/add_tracking.html', form=form, order=order)
-
-
 
 
 @app.route('/create-product', methods=['GET', 'POST'])
@@ -1002,6 +1011,17 @@ def create_product():
         return redirect(url_for('home'))
 
     return render_template('create_product.html', form=form)
+
+
+@app.route('/admin/archive')
+@login_required
+@admin_only
+def admin_archive():
+    orders = Orders.query.filter(Orders.tracking_number.isnot(None)).order_by(
+        Orders.created_at.desc()
+    ).all()
+
+    return render_template("Admin/admin_archive.html", orders=orders)
 
 
 @app.route('/admin/products')
@@ -1085,7 +1105,8 @@ def admin_edit_product(product_id):
 
     return render_template('Admin/admin_products_edit.html', form=form, product=product)
 
-@app.route('/admin/products/add/<int:product_id>', methods=['GET','POST'])
+
+@app.route('/admin/products/add/<int:product_id>', methods=['GET', 'POST'])
 def admin_add_product(product_id):
     product = db.get_or_404(Product, product_id)
     form = StockForm()
@@ -1100,7 +1121,6 @@ def admin_add_product(product_id):
     return render_template('Admin/admin_products_add.html', form=form, product=product)
 
 
-
 @app.route('/admin/activate/<int:product_id>', methods=["POST"])
 @login_required
 @admin_only
@@ -1113,6 +1133,7 @@ def activate_product(product_id):
 
 
 from sqlalchemy import func
+
 
 @app.route('/admin/users')
 @login_required
@@ -1158,6 +1179,7 @@ def admin_reports():
 def admin_support():
     return render_template("Admin/admin_support.html")
 
+
 @app.route('/admin/statistics')
 @login_required
 @admin_only
@@ -1175,6 +1197,7 @@ def admin_statistics():
     counts = [record.visit_count for record in data]
 
     return render_template('Admin/admin_statistics.html', labels=labels, counts=counts)
+
 
 @app.route('/admin/settings')
 @login_required
@@ -1197,4 +1220,3 @@ if __name__ == "__main__":
 
 "https://www.hancocks.co.uk/"
 "https://www.hswholesalesweets.co.uk/"
-

@@ -3,19 +3,9 @@
 
 {% block admin_block %}
 
-<!-- Main content area (Unfulfilled Orders + Sales Chart) -->
 <div class="col-md-9">
     <div class="row">
-        <!-- Sales Chart -->
-        <div class="col-md-6">
-            <h3>Weekly Sales</h3>
-            <img src="data:image/png;base64,{{ chart }}" class="img-fluid" alt="Sales Chart">
-        </div>
-        <div class="col-md-6 text-center">
-            <h3>Total Sales Last Week</h3>
-            <h1>£{{ total | round(2) }}</h1>
-        </div>
-        <!-- Unfulfilled Orders -->
+        <!-- fulfilled Orders -->
         <div class="container mt-4">
             <h2>All Orders</h2>
             <table class="table table-bordered table-hover mt-3">
@@ -43,23 +33,15 @@
                            class="btn btn-sm btn-primary">View</a>
                     </td>
                     <td>
-                        {% if order.tracking_number %}
+
                         <button class="btn btn-success btn-sm" disabled>Sent</button>
-                        {% else %}
-                        <a href="{{ url_for('add_tracking', order_id=order.order_id) }}" class="btn btn-danger btn-sm">Add
-                            Tracking</a>
-                        {% endif %}
+
                     </td>
                 </tr>
                 {% endfor %}
                 </tbody>
             </table>
         </div>
-
-
     </div>
 </div>
-<form action="{{ url_for('run_dynamic_pricing') }}" method="get">
-    <button type="submit" class="btn btn-warning">Run Dynamic Pricing</button>
-</form>
 {% endblock %}
