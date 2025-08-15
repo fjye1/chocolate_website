@@ -107,90 +107,91 @@
             {% endif %}
         </div>
     </div>
-    <!-- Comment Form -->
-    {% if can_comment %}
-    <p><strong>You can only submit one comment.</strong></p>
-    <form method="POST">
-        {{ form.hidden_tag() }}
-        <label for="rating">Rating:</label>
-        <input type="range" id="rating" name="rating" min="1" max="5" value="3" oninput="updateStars(this.value)">
-        <div id="stars" class="star-display">⭐⭐⭐☆☆</div>
-        {{ form.comment_text.label }}
-        {{ form.comment_text(class="form-control") }}
-        <button type="submit" class="btn btn-primary mt-2">Submit</button>
-    </form>
-    {% endif %}
-    <!-- Sleek Comments Section -->
-    <div class="sleek-comments">
-        <div class="comments-header">
-            Customer Reviews
-            <span class="comment-count">{{ product.comments|length }}</span>
-        </div>
-
-        {% for comment in product.comments %}
-        <div class="comment-item">
-            <img src="{{ comment.user.email | gravatar }}" class="comment-avatar" alt="{{ comment.user.name }}"/>
-            <div class="comment-text">{{ comment.comment | safe }}</div>
-            <div class="comment-name">
-                {% set parts = comment.user.name.split(' ') %}
-                {{ parts[0] }}{% if parts|length > 1 %} {{ parts[1][0] }}.{% endif %}
-            </div>
-            <div class="comment-rating">
-                {% for i in range(1,6) %}
-                {% if i <= comment.rating %}⭐{% else %}☆{% endif %}
-                {% endfor %}
-            </div>
-        </div>
-        {% endfor %}
+</div>
+<!-- Comment Form -->
+{% if can_comment %}
+<p><strong>You can only submit one comment.</strong></p>
+<form method="POST">
+    {{ form.hidden_tag() }}
+    <label for="rating">Rating:</label>
+    <input type="range" id="rating" name="rating" min="1" max="5" value="3" oninput="updateStars(this.value)">
+    <div id="stars" class="star-display">⭐⭐⭐☆☆</div>
+    {{ form.comment_text.label }}
+    {{ form.comment_text(class="form-control") }}
+    <button type="submit" class="btn btn-primary mt-2">Submit</button>
+</form>
+{% endif %}
+<!-- Sleek Comments Section -->
+<div class="sleek-comments">
+    <div class="comments-header">
+        Customer Reviews
+        <span class="comment-count">{{ product.comments|length }}</span>
     </div>
-    <!-- JS -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        const ctx = document.getElementById('priceChart').getContext('2d');
-        const priceChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: {{ dates|tojson }},
-                datasets: [{
-                    label: 'Price (£)',
-                    data: {{ prices|tojson }},
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1
-                }]
-            },
-            options: {
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const price = context.parsed.y;
-                                const index = context.dataIndex;
-                                const sales = {{ sales|tojson }}[index];
-                                return `£${price.toFixed(2)} (Sales: ${sales})`;
-                            }
+
+    {% for comment in product.comments %}
+    <div class="comment-item">
+        <img src="{{ comment.user.email | gravatar }}" class="comment-avatar" alt="{{ comment.user.name }}"/>
+        <div class="comment-text">{{ comment.comment | safe }}</div>
+        <div class="comment-name">
+            {% set parts = comment.user.name.split(' ') %}
+            {{ parts[0] }}{% if parts|length > 1 %} {{ parts[1][0] }}.{% endif %}
+        </div>
+        <div class="comment-rating">
+            {% for i in range(1,6) %}
+            {% if i <= comment.rating %}⭐{% else %}☆{% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+<!-- JS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('priceChart').getContext('2d');
+    const priceChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ dates|tojson }},
+            datasets: [{
+                label: 'Price (£)',
+                data: {{ prices|tojson }},
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const price = context.parsed.y;
+                            const index = context.dataIndex;
+                            const sales = {{ sales|tojson }}[index];
+                            return `£${price.toFixed(2)} (Sales: ${sales})`;
                         }
                     }
                 }
             }
-        });
-
-        // Quantity button functionality
-        document.querySelector('.qty-btn.minus').addEventListener('click', () => {
-            const input = document.getElementById('quantity-input');
-            let value = parseInt(input.value);
-            if (value > 1) input.value = value - 1;
-        });
-
-        document.querySelector('.qty-btn.plus').addEventListener('click', () => {
-            const input = document.getElementById('quantity-input');
-            let value = parseInt(input.value);
-            input.value = value + 1;
-        });
-
-        // Live star rating
-        function updateStars(value) {
-            document.getElementById('stars').textContent = '⭐'.repeat(value) + '☆'.repeat(5 - value);
         }
+    });
 
-    </script>
-    {% endblock %}
+    // Quantity button functionality
+    document.querySelector('.qty-btn.minus').addEventListener('click', () => {
+        const input = document.getElementById('quantity-input');
+        let value = parseInt(input.value);
+        if (value > 1) input.value = value - 1;
+    });
+
+    document.querySelector('.qty-btn.plus').addEventListener('click', () => {
+        const input = document.getElementById('quantity-input');
+        let value = parseInt(input.value);
+        input.value = value + 1;
+    });
+
+    // Live star rating
+    function updateStars(value) {
+        document.getElementById('stars').textContent = '⭐'.repeat(value) + '☆'.repeat(5 - value);
+    }
+
+</script>
+{% endblock %}
