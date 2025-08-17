@@ -18,7 +18,7 @@ from functools import wraps
 from sqlalchemy import cast, Date, literal
 from datetime import datetime, timedelta, timezone, date
 import stripe
-import  uuid
+import uuid
 
 from dotenv import load_dotenv
 import os
@@ -188,6 +188,28 @@ def toggle_dynamic_pricing(product_id):
 
 @app.route("/")
 def home():
+    if not session.get("portfolio_banner_shown"):
+        flash("""
+            <b>⚠️ Portfolio Demo Site</b><br>
+    Please do not use real payment details.<br>
+    Payments run in <b>Stripe test mode</b> only.
+    <ul style="margin:6px 0 0 18px">
+      <li>Visa: 4242 4242 4242 4242 (any future expiry, CVC, postcode)</li>
+      <li>3D Secure test: 4000 0027 6000 3184</li>
+    </ul>
+    <b>No orders will be fulfilled.</b><br><br>
+
+     <b>Features you can try:</b>
+    <ul style="margin:6px 0 0 18px">
+      <li>Place orders to see live <b>order updates</b> and <b>confirmation emails</b></li>
+      <li>Dynamic <b>price alerts</b> & <b>daily price updates</b> (managed by an external server via SSH → PostgreSQL)</li>
+    </ul>
+
+     Interested in seeing more? <br>
+    <b>Contact me if you’d like admin access</b> to explore the advanced features.<br>
+    Mobile optimisation coming soon!
+            """, "demo")
+        session["portfolio_banner_shown"] = True
     admin = current_user.admin if current_user.is_authenticated else False
     random_comments = Comment.query.order_by(func.random()).limit(3).all()
     products = Product.query.filter_by(is_active=True).all()

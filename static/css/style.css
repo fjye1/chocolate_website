@@ -31,6 +31,12 @@ h2 {
     padding: 10px;
 }
 
+.alert-demo {
+  background: #fff3cd;
+  border: 1px solid #ffeeba;
+  color: #856404;
+}
+
 body {
     overflow-x: hidden;
 }
