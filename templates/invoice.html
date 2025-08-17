@@ -7,7 +7,7 @@
     <div class="container">
         <div class="row align-items-center">
             <div class="col-auto">
-                <img src="{{ url_for('static', filename='images/Logo_small.png', _external=True) }}"
+                <img src="{{ url_for('static', filename='images/Logo_small.png') }}"
                      alt="Site Logo"
                      width="150" height="150" class="rounded">
 
@@ -45,7 +45,7 @@
     {% for item in order.items %}
     <tr>
         <td>
-            <img src="{{ url_for('static', filename=item.product.image, _external=True) }}"
+            <img src="{{ url_for('static', filename=item.product.image) }}"
                  alt="{{ item.product.name }}"
                  class="img-thumbnail" style="max-width: 100px; height: 100px; object-fit: cover;">
         </td>
