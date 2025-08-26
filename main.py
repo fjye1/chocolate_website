@@ -1033,11 +1033,12 @@ def admin_products():
     now = datetime.utcnow()
 
     for product in products:
-        # Calculate days left for this product
-        if product.expiration_date:
-            product.days_left = (product.expiration_date - now).days
-        else:
-            product.days_left = None
+        # Set expiration_date to today + 30 days if it's None
+        if not product.expiration_date:
+            product.expiration_date = datetime.today() + timedelta(days=30)
+
+        # Calculate days left
+        product.days_left = (product.expiration_date - datetime.today()).days
 
         # Filter recent sales
         product.recent_sales = [
