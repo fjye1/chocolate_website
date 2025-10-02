@@ -31,7 +31,7 @@ class ProductForm(FlaskForm):
     name = StringField('Product Name', validators=[DataRequired()])
     price = DecimalField('Price', validators=[DataRequired()])
     description = TextAreaField('Description')
-    image = FileField('Product Image', validators=[FileAllowed(['jpg', 'png', 'jpeg'])])
+    image = FileField('Product Image', validators=[FileAllowed(['jpg', 'png', 'jpeg', 'avif'])])
     weight = DecimalField('Weight', validators=[DataRequired()])
     quantity = IntegerField('Quantity', validators=[DataRequired()])
     tags = StringField('Tags')
