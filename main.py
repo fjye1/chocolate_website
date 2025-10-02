@@ -876,7 +876,7 @@ def soft_delete_product(product_id):
     product.is_active = False  # Soft delete
     db.session.commit()
     flash(f"Product '{product.name}' was soft deleted (hidden).", "warning")
-    return redirect(url_for('home'))
+    return redirect(url_for('admin_products'))
 
 
 @app.route('/hard_delete_product/<int:product_id>', methods=['POST'])
@@ -888,12 +888,12 @@ def hard_delete_product(product_id):
     # Extra check: prevent hard delete if product has orders
     if product.order_items:
         flash("Cannot hard delete product with orders. Use soft delete.", "danger")
-        return redirect(url_for('home'))
+        return redirect(url_for('admin_products'))
 
     db.session.delete(product)
     db.session.commit()
     flash(f"Product '{product.name}' was permanently deleted.", "success")
-    return redirect(url_for('home'))
+    return redirect(url_for('admin_products'))
 
 
 @app.route('/admin')
