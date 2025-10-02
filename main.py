@@ -725,7 +725,7 @@ def create_payment_intent():
 
     intent = stripe.PaymentIntent.create(
         amount=amount,
-        currency='gbp',
+        currency='inr',
         metadata={
             'user_id': str(current_user.id),  # string because metadata values must be strings
             'cart': cart_str
