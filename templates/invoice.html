@@ -51,14 +51,14 @@
         </td>
         <td>{{ item.product.name }}</td>
         <td>{{ item.quantity }}</td>
-        <td>£{{ '%.2f' % item.price_at_purchase }}</td>
-        <td>£{{ '%.2f' % (item.quantity * item.price_at_purchase) }}</td>
+        <td>₹{{ '%.2f' % item.price_at_purchase }}</td>
+        <td>₹{{ '%.2f' % (item.quantity * item.price_at_purchase) }}</td>
     </tr>
     {% endfor %}
     </tbody>
 </table>
 
 <div class="d-flex justify-content-end mt-4">
-    <h5>Total: <strong>£{{ '%.2f' % order.total_amount }}</strong></h5>
+    <h5>Total: <strong>₹{{ '%.2f' % order.total_amount }}</strong></h5>
 </div>
 </div>

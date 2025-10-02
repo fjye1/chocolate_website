@@ -17,7 +17,7 @@
             <!-- Total Sales (smaller column) -->
             <div class="col-md-3 text-center">
                 <h3>Total Sales Last 28 Days</h3>
-                <h1>£{{ total | round(2) }}</h1>
+                <h1>₹{{ total | round(2) }}</h1>
             </div>
         </div>
         <!-- Unfulfilled Orders -->
@@ -29,7 +29,7 @@
                     <th>Order ID</th>
                     <th>User</th>
                     <th>Date</th>
-                    <th>Total (£)</th>
+                    <th>Total (₹)</th>
                     <th>Status</th>
                     <th>View</th>
                     <th>Tracking</th>
@@ -75,7 +75,7 @@ const salesChart = new Chart(ctx, {
     data: {
         labels: {{ day_labels|tojson }},
         datasets: [{
-            label: 'Sales (£)',
+            label: 'Sales (₹)',
             data: {{ sales_values|tojson }},
             backgroundColor: 'rgba(135, 206, 235, 0.2)',
             borderColor: 'skyblue',

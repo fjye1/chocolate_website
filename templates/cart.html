@@ -9,7 +9,7 @@
         <img src="{{ url_for('static', filename=item.product.image) }}" alt="{{ item.product.name }}"
              style="width: 100px; height: 100px; object-fit: cover; border-radius: 5px;">
 
-        {{ item.product.name }} – Quantity: {{ item.quantity }} – £{{ '%.2f' % (item.price * item.quantity) }}
+        {{ item.product.name }} – Quantity: {{ item.quantity }} – ₹{{ '%.2f' % (item.price * item.quantity) }}
 
         {% if item.cart_item_id %}
         <form action="{{ url_for('remove_cart_item', item_id=item.cart_item_id) }}" method="POST" style="display:inline;">
@@ -20,7 +20,7 @@
     {% endfor %}
 </ul>
 
-<strong>Total: £{{ '%.2f' % total }}</strong>
+<strong>Total: ₹{{ '%.2f' % total }}</strong>
 
 {% if current_user.is_authenticated %}
 <form action="{{ url_for('checkout') }}" method="POST">

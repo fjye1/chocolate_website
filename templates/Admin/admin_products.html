@@ -43,7 +43,7 @@
     <tr>
         <td><img src="{{ url_for('static', filename=product.image) }}" width="100"></td>
         <td>{{ product.name }}</td>
-        <td>£{{ "%.2f"|format(product.price) }}</td>
+        <td>₹{{ "%.2f"|format(product.price) }}</td>
         <td>{{ "Yes" if product.is_active else "No" }}</td>
         <td>{{ product.quantity }}</td>
         <td>{{ product.expiration_date.strftime('%d %b %Y') }}</td>
@@ -113,9 +113,9 @@
                 </button>
             </form>
         </td>
-        <td>£{{'%.2f' % product.avg_alert_price | round(2)}}</td>
-        <td>£{{ ns.total_revenue | round(2) }}</td>
-        <td>£{{ profit | round(2) }}</td>
+        <td>₹{{'%.2f' % product.avg_alert_price | round(2)}}</td>
+        <td>₹{{ ns.total_revenue | round(2) }}</td>
+        <td>₹{{ profit | round(2) }}</td>
         <td>{{ profit_percent | round(1) }}%</td>
 
     </tr>

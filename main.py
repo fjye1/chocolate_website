@@ -362,7 +362,7 @@ def price_alert():
     expires_at = datetime.utcnow() + timedelta(days=expiry_days)
 
     if target_price < product.floor_price:
-        flash(f"Please enter a price above £{product.floor_price:.2f}", "warning")
+        flash(f"Please enter a price above 	₹{product.floor_price:.2f}", "warning")
         return redirect(url_for('product_detail', product_id=product_id))
 
     alert = PriceAlert(
@@ -374,7 +374,7 @@ def price_alert():
     db.session.add(alert)
     db.session.commit()
 
-    flash(f"We will email you when {product.name} drops to £{target_price:.2f}!\n"
+    flash(f"We will email you when {product.name} drops to 	₹{target_price:.2f}!\n"
           f"You can manage your price alerts in your profile", 'success')
 
     return redirect(url_for('product_detail', product_id=product_id))
