@@ -5,6 +5,7 @@ __pycache__/
 
 # C extensions
 *.so
+*.so
 visit_log.txt
 
 # Distribution / packaging
