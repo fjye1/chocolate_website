@@ -185,7 +185,18 @@ def toggle_dynamic_pricing(product_id):
     db.session.commit()
     return redirect(request.referrer or url_for("admin_products"))
 
+@app.route("/new_home")
+def new_home():
+    admin = current_user.admin if current_user.is_authenticated else False
+    random_comments = Comment.query.order_by(func.random()).limit(3).all()
+    products = Product.query.filter_by(is_active=True).all()
+    sorted_products = sorted(products, key=lambda p: p.average_rating(), reverse=True)
 
+    return render_template("new_home.html",
+                           products=products,
+                           admin=admin,
+                           comments=random_comments,
+                           sorted_products=sorted_products)
 @app.route("/")
 def home():
     if not session.get("portfolio_banner_shown"):
