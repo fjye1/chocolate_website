@@ -31,6 +31,8 @@ f3eff9 */
   font-style: normal;
 }
 
+
+
 h2 {
   margin: 20px 0;
   padding: 10px;
@@ -165,8 +167,56 @@ body {
   position: relative;
   padding-left: 3rem !important;
 }
+/* homepage hides */
+
+
+.hero-full {
+  width: 100vw;            /* Full viewport width */
+  height: auto;            /* Adjust height to image ratio */
+  max-height: 550px;        /* Optional: keep it from being too tall */
+  object-fit: cover;       /* Fill area without distortion */
+  display: block;
+  margin: 0;  
+  margin-top: 0 !important;
+  padding-top: 0;             /* Remove gaps */
+  position: relative;      /* Keeps it in flow */
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;      /* Cancels container padding */
+  margin-right: -50vw;
+}
+
+
+/* Example: only show 1 product under 300px */
+/* @media (max-width: 300px) {
+  .product-card-wrapper:nth-child(n+3) { display: none; }
+} */
+
+/* 2 products 301-600px */
+/* @media (min-width: 301px) and (max-width: 600px) {
+  .product-card-wrapper:nth-child(n+4) { display: none; }
+} */
+
+/* 1 product 601-900px */
+/* @media (min-width: 601px) and (max-width: 900px) {
+  .product-card-wrapper:nth-child(n+5) { display: none; }
+} */
+
+/* 4 products 901+ */
+/* @media (min-width: 901px) {
+  .product-card-wrapper:nth-child(n+6) { display: none; }
+} */
+
 
 /* hides */
+@media (max-width: 1000px) {
+  .hide-under-1000 {
+    display: none !important;
+  }
+  .show-under-1000 {
+    display: block !important;
+  }
+}
 
 @media (max-width: 900px) {
   .hide-under-900 {

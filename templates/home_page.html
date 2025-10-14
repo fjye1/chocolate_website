@@ -5,6 +5,10 @@
 {% block content %}
 
 
+<img src="{{ url_for('static', filename='images/central_hero_small.png') }}"
+     alt="Hero image"
+     class="hero-full"
+     loading="lazy">
 <h1 style="text-align: center;">
     Welcome to Regal Chocolate
 </h1>
@@ -19,10 +23,10 @@
     Best Sellers
 </h2>
 <div class="container-fluid">
-    <div class="row g-0 align-items-center">
+    <div class="row g-0 align-items-center justify-content-center">
 
         <!-- Left image column -->
-        <div class="col-12 col-md-4 hide-under-900">
+        <div class="col-12 col-md-4 hide-under-1000">
             <img src="{{ url_for('static', filename='images/hero_1_small.png') }}"
                  alt="photo"
                  class="full-bleed-left lazy-swap"
@@ -31,9 +35,9 @@
         </div>
 
         <!-- Right product cards -->
-        <div class="col-12 col-md-8 px-3 py-4">
+        <div class="col-12 col-lg-8 px-3 py-4">
             <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
-                {% for product in sorted_products[:3] if product.is_active%}
+                {%for product in sorted_products[:6] if product.is_active%}
                 <div class="col">
                     <div class="card h-100">
                         <a href="{{ url_for('product_detail', product_id=product.id) }}"
@@ -91,10 +95,10 @@
         We think you will love
     </h2>
     <div class="container-fluid">
-        <div class="row g-0 align-items-center">
+        <div class="row g-0 align-items-center justify-content-center">
 
             <!-- Left image column -->
-            <div class="col-12 col-md-4 hide-under-900">
+            <div class="col-12 col-md-4 hide-under-1000">
                 <img src="{{ url_for('static', filename='images/hero_2_small.png') }}"
                      alt="photo"
                      class="full-bleed-left lazy-swap"
@@ -103,10 +107,10 @@
             </div>
 
             <!-- Right product cards -->
-            <div class="col-12 col-md-8 px-3 py-4">
+            <div class="col-12 col-lg-8 px-3 py-4">
                 <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
                     {% for product in products if product.is_active %}
-                    {% if loop.index <= 3 %}
+                    {% if loop.index <= 6 %}
                     <div class="col">
                         <div class="card h-100">
                             <a href="{{ url_for('product_detail', product_id=product.id) }}"
@@ -130,3 +134,4 @@
     <hr>
     {% endblock %}
 
+</div>
