@@ -3,32 +3,7 @@
 {% block title %}Home - Chocolate Shop{% endblock %}
 
 {% block content %}
-<style>
-    .full-bleed-left {
-          position: relative;
-          left: 50%;
-          right: 50%;
-          margin-left: -30vw;
-          margin-right: auto;
-          width: 40vw;
-          max-width: none;
-          }
-    .quote-mark {
-      font-size: 4rem;
-      color: #d2691e; /* chocolate brown */
-      position: absolute;
-      top: 10px;
-      left: 15px;
-      font-family: serif;
-      opacity: 0.2;
-      user-select: none;
-      pointer-events: none;
-    }
-    .blockquote {
-      position: relative;
-      padding-left: 3rem !important;
-    }
-</style>
+
 
 <h1 style="text-align: center;">
     Welcome to Regal Chocolate
@@ -47,7 +22,7 @@
     <div class="row g-0 align-items-center">
 
         <!-- Left image column -->
-        <div class="col-12 col-md-4 hide-under-769">
+        <div class="col-12 col-md-4 hide-under-900">
             <img src="{{ url_for('static', filename='images/hero_1_small.png') }}"
                  alt="photo"
                  class="full-bleed-left lazy-swap"
@@ -119,7 +94,7 @@
         <div class="row g-0 align-items-center">
 
             <!-- Left image column -->
-            <div class="col-12 col-md-4 hide-under-769">
+            <div class="col-12 col-md-4 hide-under-900">
                 <img src="{{ url_for('static', filename='images/hero_2_small.png') }}"
                      alt="photo"
                      class="full-bleed-left lazy-swap"
