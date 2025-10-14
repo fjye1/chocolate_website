@@ -173,7 +173,7 @@ body {
 .hero-full {
   width: 100vw;            /* Full viewport width */
   height: auto;            /* Adjust height to image ratio */
-  max-height: 550px;        /* Optional: keep it from being too tall */
+  max-height: 400px;        /* Optional: keep it from being too tall */
   object-fit: cover;       /* Fill area without distortion */
   display: block;
   margin: 0;  

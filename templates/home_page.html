@@ -9,9 +9,13 @@
      alt="Hero image"
      class="hero-full"
      loading="lazy">
-<h1 style="text-align: center;">
-    Welcome to Regal Chocolate
+<div>
+
+</div>
+<h1 style="text-align: center; font-family: 'Amsterdam One', cursive; margin: 30px;">
+    Welcome
 </h1>
+
 {% if current_user.admin %}
 <div class="pt-3">
     <a href="{{ url_for('create_product') }}" class="btn btn-primary mb-3">
