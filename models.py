@@ -3,7 +3,7 @@ from flask_login import UserMixin
 from sqlalchemy.sql import func
 from extension import db
 from datetime import datetime, timezone, timedelta
-
+from pgvector.sqlalchemy import Vector
 
 class Address(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -83,6 +83,8 @@ class Product(db.Model):
     floor_price = db.Column(db.Float, nullable=True)  ## min price that it cant drop below dynamically
 
     ############### this section contains data for the dynamic part
+
+    embedding = db.Column(Vector(768))
 
     def average_rating(self):
         avg = db.session.query(func.avg(Comment.rating)) \
