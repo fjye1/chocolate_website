@@ -108,6 +108,33 @@
         </div>
     </div>
 </div>
+
+<h1 style="text-align: center; font-family: 'Amsterdam One', cursive; margin: 30px;">
+    Related Products
+</h1>
+
+<div class="col-12 col-lg-8 px-3 py-4 mx-auto">
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
+                {%for product in similar_products %}
+                <div class="col">
+                    <div class="card h-100">
+                        <a href="{{ url_for('product_detail', product_id=product.id) }}"
+                           style="text-decoration: none; color: inherit;">
+                            <img src="{{ url_for('static', filename=product.image) }}" class="card-img-top"
+                                 alt="Product Image">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ product.name }}</h5>
+                                <p><strong>Rating:</strong> {{ product.average_rating() }} ⭐</p>
+                                <p class="card-text"><strong>₹{{ product.price }}</strong></p>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+
 <!-- Comment Form -->
 {% if can_comment %}
 <p><strong>You can only submit one comment.</strong></p>

@@ -313,6 +313,20 @@ def search():
 @app.route("/product/<int:product_id>", methods=["GET", "POST"])
 def product_detail(product_id):
     product = Product.query.get_or_404(product_id)
+    results = (
+        db.session.query(Product)
+        .filter(Product.id != product.id)  # exclude the same product
+        .order_by(
+            Product.embedding.cosine_distance(
+                literal(product.embedding)
+            )
+        )
+        .limit(4)
+        .all()
+    )
+
+    similar_products = results[1:4]
+
     comment_form = CommentForm()
 
     if isinstance(current_user, AnonymousUserMixin):
@@ -360,7 +374,8 @@ def product_detail(product_id):
                            dates=dates,
                            prices=prices,
                            sales=sales,
-                           user_alert=user_alert)
+                           user_alert=user_alert,
+                           similar_products =similar_products)
 
 
 @app.route('/price-alert', methods=['POST'])
