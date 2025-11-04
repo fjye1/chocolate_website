@@ -315,11 +315,9 @@ def product_detail(product_id):
     product = Product.query.get_or_404(product_id)
     results = (
         db.session.query(Product)
-        .filter(Product.id != product.id)  # exclude the same product
+        .filter(Product.is_active == True)  # only active products
         .order_by(
-            Product.embedding.cosine_distance(
-                literal(product.embedding)
-            )
+            Product.embedding.cosine_distance(literal(product.embedding))
         )
         .limit(4)
         .all()
@@ -684,6 +682,42 @@ def cart():
     return render_template('cart.html', items=items, total=total)
 
 
+@app.route('/admin/admin_cart', methods=['GET', 'POST'])
+@login_required
+@admin_only
+def admin_cart():
+    if not current_user.admin:
+        abort(403)
+    if current_user.is_authenticated:
+        cart = get_user_cart(current_user.id)
+        items = []
+        total = 0
+        for ci in cart.items if cart and cart.items else []:
+            items.append({
+                'product': ci.product,
+                'quantity': ci.quantity,
+                'price': ci.product.price,
+                'cart_item_id': ci.id
+            })
+            total += ci.product.price * ci.quantity
+    else:
+        basket = session.get('basket', [])
+        items = []
+        total = 0
+        for b in basket:
+            product = Product.query.get(b['product_id'])
+            if product:
+                items.append({
+                    'product': product,
+                    'quantity': b['quantity'],
+                    'price': b['price'],
+                    'cart_item_id': None  # no DB id
+                })
+                total += b['price'] * b['quantity']
+
+    return render_template("admin/admin_cart.html", items=items, total=total)
+
+
 @app.route('/checkout', methods=['POST', 'GET'])
 @login_required
 def checkout():
@@ -701,6 +735,7 @@ def checkout():
 
     total = sum(item.product.price * item.quantity for item in cart.items)
     return render_template('checkout.html', total=total)
+
 
 
 @app.route('/cart-data')
@@ -999,6 +1034,9 @@ def add_tracking(order_id):
     return render_template('Admin/add_tracking.html', form=form, order=order)
 
 
+
+
+
 @app.route('/create-product', methods=['GET', 'POST'])
 @login_required
 @admin_only
@@ -1035,6 +1073,9 @@ def create_product():
         return redirect(url_for('home'))
 
     return render_template('create_product.html', form=form)
+
+
+
 
 
 @app.route('/admin/archive')

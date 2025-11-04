@@ -64,6 +64,7 @@ class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     price = db.Column(db.Float, nullable=False)
+
     description = db.Column(db.Text)
     image = db.Column(db.String(200))
     weight = db.Column(db.Integer)
@@ -90,6 +91,11 @@ class Product(db.Model):
         avg = db.session.query(func.avg(Comment.rating)) \
             .filter(Comment.product_id == self.id).scalar()
         return round(avg or 0, 1)
+
+
+from datetime import datetime
+
+
 
 
 ############### this section contains data for the dynamic part
