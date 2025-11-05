@@ -50,7 +50,7 @@ choc_password = os.getenv("CHOC_PASSWORD")
 
 from models import Cart, CartItem, Address, User, Orders, Product, Tag, OrderItem, Comment, ProductSalesHistory, \
     PriceAlert, SiteVisitCount, Tasks
-from functions import update_dynamic_prices, MAX_DAILY_CHANGE
+from functions import update_dynamic_prices, MAX_DAILY_CHANGE, ProductService
 
 from tasks import simple_task
 
@@ -180,7 +180,7 @@ def run_dynamic_pricing():
 
 @app.route("/toggle-dynamic/<int:product_id>", methods=["POST"])
 def toggle_dynamic_pricing(product_id):
-    product = Product.query.get_or_404(product_id)
+    product = ProductService.get_product_by_id(product_id)
     product.dynamic_pricing_enabled = not product.dynamic_pricing_enabled
     db.session.commit()
     return redirect(request.referrer or url_for("admin_products"))
@@ -312,7 +312,7 @@ def search():
 
 @app.route("/product/<int:product_id>", methods=["GET", "POST"])
 def product_detail(product_id):
-    product = Product.query.get_or_404(product_id)
+    product = ProductService.get_product_by_id(product_id)
     results = (
         db.session.query(Product)
         .filter(Product.is_active == True)  # only active products
@@ -581,7 +581,7 @@ def add_to_cart():
     product_id = int(request.form['product_id'])
     quantity = int(request.form['quantity'])
 
-    product = Product.query.get_or_404(product_id)
+    product = ProductService.get_product_by_id(product_id)
 
     if current_user.is_authenticated:
         # Logged-in user: save in DB cart
@@ -933,7 +933,7 @@ def logout():
 @login_required
 @admin_only
 def soft_delete_product(product_id):
-    product = Product.query.get_or_404(product_id)
+    product = ProductService.get_product_by_id(product_id)
     product.is_active = False  # Soft delete
     db.session.commit()
     flash(f"Product '{product.name}' was soft deleted (hidden).", "warning")
@@ -944,7 +944,7 @@ def soft_delete_product(product_id):
 @login_required
 @admin_only
 def hard_delete_product(product_id):
-    product = Product.query.get_or_404(product_id)
+    product = ProductService.get_product_by_id(product_id)
 
     # Extra check: prevent hard delete if product has orders
     if product.order_items:
@@ -1191,7 +1191,7 @@ def admin_add_product(product_id):
 @login_required
 @admin_only
 def activate_product(product_id):
-    product = Product.query.get_or_404(product_id)
+    product = ProductService.get_product_by_id(product_id)
     product.is_active = True
     db.session.commit()
     flash(f"Product '{product.name}' activated.", "success")
