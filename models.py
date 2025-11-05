@@ -60,38 +60,125 @@ product_tags = db.Table(
     db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True)
 )
 
+
+###TODO unifiy the new logic for model and boxes
+# class Product(db.Model):
+#     id = db.Column(db.Integer, primary_key=True)
+#     name = db.Column(db.String(100), nullable=False)
+#     price = db.Column(db.Float, nullable=False)
+#
+#     description = db.Column(db.Text)
+#     image = db.Column(db.String(200))
+#     weight = db.Column(db.Integer)
+#     quantity = db.Column(db.Integer, default=0)
+#     is_active = db.Column(db.Boolean, default=True)
+#     comments = db.relationship('Comment', backref='product', lazy=True)
+#     tags = db.relationship('Tag', secondary=product_tags, backref=db.backref('products', lazy='dynamic')
+#                            , lazy='dynamic')
+#     ############### this section contains data for the dynamic part
+#     expiration_date = db.Column(db.DateTime, nullable=True)
+#     date_added = db.Column(db.DateTime, default=func.now(), onupdate=func.now())
+#     dynamic_pricing_enabled = db.Column(db.Boolean, default=False)
+#     pending_price = db.Column(db.Float, nullable=True)  ##Price value for tomorrow or the next period of time
+#     target_daily_sales = db.Column(db.Float, nullable=True)
+#     sold_today = db.Column(db.Integer, default=0)
+#     last_price_update = db.Column(db.DateTime, default=func.now())
+#     floor_price = db.Column(db.Float, nullable=True)  ## min price that it cant drop below dynamically
+#
+#     ############### this section contains data for the dynamic part
+#
+#     embedding = db.Column(Vector(768))
+#
+#     def average_rating(self):
+#         avg = db.session.query(func.avg(Comment.rating)) \
+#             .filter(Comment.product_id == self.id).scalar()
+#         return round(avg or 0, 1)
+
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    price = db.Column(db.Float, nullable=False)
-
     description = db.Column(db.Text)
     image = db.Column(db.String(200))
-    weight = db.Column(db.Integer)
-    quantity = db.Column(db.Integer, default=0)
+    weight_per_unit = db.Column(db.Float, nullable=False)  # per unit weight
     is_active = db.Column(db.Boolean, default=True)
+
+    # Relationships
+    boxes = db.relationship('Box', back_populates='product', cascade="all, delete-orphan")
     comments = db.relationship('Comment', backref='product', lazy=True)
-    tags = db.relationship('Tag', secondary=product_tags, backref=db.backref('products', lazy='dynamic')
-                           , lazy='dynamic')
-    ############### this section contains data for the dynamic part
-    expiration_date = db.Column(db.DateTime, nullable=True)
-    date_added = db.Column(db.DateTime, default=func.now(), onupdate=func.now())
-    dynamic_pricing_enabled = db.Column(db.Boolean, default=False)
-    pending_price = db.Column(db.Float, nullable=True)  ##Price value for tomorrow or the next period of time
-    target_daily_sales = db.Column(db.Float, nullable=True)
-    sold_today = db.Column(db.Integer, default=0)
-    last_price_update = db.Column(db.DateTime, default=func.now())
-    floor_price = db.Column(db.Float, nullable=True)  ## min price that it cant drop below dynamically
+    tags = db.relationship(
+        'Tag', secondary='product_tags',
+        backref=db.backref('products', lazy='dynamic'), lazy='dynamic'
+    )
 
-    ############### this section contains data for the dynamic part
-
-    embedding = db.Column(Vector(768))
+    embedding = db.Column(Vector(768))  # if you still need embeddings
 
     def average_rating(self):
         avg = db.session.query(func.avg(Comment.rating)) \
             .filter(Comment.product_id == self.id).scalar()
         return round(avg or 0, 1)
 
+# Box model (per-lot / per-box of a product)
+class Box(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    product = db.relationship('Product', back_populates='boxes')
+
+    shipment_id = db.Column(db.Integer, db.ForeignKey('shipment.id'))
+    shipment = db.relationship('Shipment', back_populates='boxes')
+
+    quantity = db.Column(db.Integer, nullable=False, default=1)
+    uk_price_at_shipment = db.Column(db.Float, nullable=False)
+    weight_per_unit = db.Column(db.Float, nullable=False)
+    expiration_date = db.Column(db.Date, nullable=True)
+    date_added = db.Column(db.DateTime, default=func.now())
+
+    # Dynamic pricing fields (per box)
+    dynamic_pricing_enabled = db.Column(db.Boolean, default=False)
+    pending_price = db.Column(db.Float, nullable=True)
+    target_daily_sales = db.Column(db.Float, nullable=True)
+    sold_today = db.Column(db.Integer, default=0)
+    last_price_update = db.Column(db.DateTime, default=func.now())
+    floor_price = db.Column(db.Float, nullable=True)
+
+    @property
+    def total_price(self):
+        return self.quantity * self.uk_price_at_shipment
+
+    @property
+    def total_weight(self):
+        return self.quantity * self.weight_per_unit
+
+
+# Shipment model (container for boxes)
+class Shipment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    date_created = db.Column(db.DateTime, default=datetime.utcnow)
+    transit_cost = db.Column(db.Float, nullable=False, default=0.0)
+    tariff_cost = db.Column(db.Float, nullable=False, default=0.0)
+
+    boxes = db.relationship('Box', back_populates='shipment', cascade="all, delete-orphan")
+
+    @property
+    def total_product_cost(self):
+        return sum(box.total_price for box in self.boxes)
+
+    @property
+    def total_weight(self):
+        return sum(box.total_weight for box in self.boxes)
+
+    @property
+    def total_cost(self):
+        return self.total_product_cost + self.transit_cost + self.tariff_cost
+
+    @property
+    def profitability(self, revenue=None):
+        """
+        If revenue is provided, calculates profit = revenue - total_cost.
+        Otherwise, just returns negative total cost as placeholder.
+        """
+        if revenue is not None:
+            return revenue - self.total_cost
+        return -self.total_cost
 
 from datetime import datetime
 

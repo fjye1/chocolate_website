@@ -32,7 +32,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
 
 # TODO the section of code below is to link you to the render Database it won't work if you don't have a render database set up
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("RENDER_DATABASE_URL")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("RENDER_DATABASE_URL2")
 
 ## this is the local database for app development only — use if in offline_db branch
 # app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
@@ -167,8 +167,8 @@ def load_csv_data():
 
 
 # Uncomment and run once to load CSV
-with app.app_context():
-    load_csv_data()
+# with app.app_context():
+#     load_csv_data()
 
 
 @app.route("/run-dynamic-pricing")
