@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, PasswordField, DecimalField, IntegerField, TextAreaField, DateField, \
-    EmailField
-from wtforms.validators import DataRequired, NumberRange, EqualTo, Email
+    EmailField, SelectField, BooleanField
+from wtforms.validators import DataRequired, NumberRange, EqualTo, Email, Optional
 from flask_ckeditor import CKEditorField
 from flask_wtf.file import FileField, FileAllowed
 
@@ -29,13 +29,12 @@ class AddAddress(FlaskForm):
 ##TODO fix the implentation of this properly Create_new_product
 class ProductForm(FlaskForm):
     name = StringField('Product Name', validators=[DataRequired()])
-    price = DecimalField('Price', validators=[DataRequired()])
-    description = TextAreaField('Description')
+    description = TextAreaField('Description', validators=[Optional()])
     image = FileField('Product Image', validators=[FileAllowed(['jpg', 'png', 'jpeg', 'avif'])])
-    weight = DecimalField('Weight', validators=[DataRequired()])
-    quantity = IntegerField('Quantity', validators=[DataRequired()])
-    tags = StringField('Tags')
+    weight_per_unit = DecimalField('Weight per Unit (g)', validators=[DataRequired()])
+    tags = StringField('Tags', validators=[Optional()])
     submit = SubmitField('Create Product')
+
 
 class CommentForm(FlaskForm):
     comment_text = CKEditorField("Comment", validators=[DataRequired()])
@@ -51,3 +50,21 @@ class StockForm(FlaskForm):
 class TrackingForm(FlaskForm):
     tracking_code = StringField('Tracking Code', validators=[DataRequired()])
     submit = SubmitField('Submit')
+
+class ShipmentSentForm(FlaskForm):
+    transit_cost = DecimalField("Transit Cost (£)", validators=[DataRequired()])
+    tariff_cost = DecimalField("Tariff Cost (₹)")
+    submit = SubmitField("Create Shipment")
+
+class ShipmentArrivalForm(FlaskForm):
+    tariff_cost = DecimalField("Tariff Cost (₹)")
+    submit = SubmitField("This Shipment has arrived.")
+
+class BoxForm(FlaskForm):
+    product_id = SelectField("Product", coerce=int, validators=[DataRequired()])
+    quantity = IntegerField("Quantity", default=1, validators=[DataRequired(), NumberRange(min=1)])
+    uk_price_at_shipment = DecimalField("UK Price at Shipment (£)", validators=[DataRequired(), NumberRange(min=0)])
+    weight_per_unit = DecimalField("Weight per Unit (g)", validators=[DataRequired(), NumberRange(min=0)])
+    expiration_date = DateField("Expiration Date", validators=[Optional()])
+    dynamic_pricing_enabled = BooleanField("Enable Dynamic Pricing")
+    submit = SubmitField("Add Box to Shipment")

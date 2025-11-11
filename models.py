@@ -139,6 +139,7 @@ class Box(db.Model):
     sold_today = db.Column(db.Integer, default=0)
     last_price_update = db.Column(db.DateTime, default=func.now())
     floor_price = db.Column(db.Float, nullable=True)
+    price = db.Column(db.Float, nullable=True)
 
     @property
     def total_price(self):
@@ -153,8 +154,14 @@ class Box(db.Model):
 class Shipment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
-    transit_cost = db.Column(db.Float, nullable=False, default=0.0)
-    tariff_cost = db.Column(db.Float, nullable=False, default=0.0)
+
+    # Costs
+    transit_cost = db.Column(db.Float, nullable=False, default=0.0)  # Cost when leaving UK
+    tariff_cost = db.Column(db.Float, nullable=False, default=0.0)   # Added when it arrives
+
+    # Status
+    has_arrived = db.Column(db.Boolean, default=False)  # True once shipment has arrived
+    date_arrived = db.Column(db.DateTime, nullable=True)
 
     boxes = db.relationship('Box', back_populates='shipment', cascade="all, delete-orphan")
 

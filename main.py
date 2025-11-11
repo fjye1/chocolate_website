@@ -1,7 +1,7 @@
 from flask import Flask, render_template, redirect, url_for, flash, request, abort, jsonify, make_response, current_app, \
     session
 import csv
-
+from decimal import Decimal
 from sqlalchemy.orm import joinedload
 from xhtml2pdf import pisa
 import io
@@ -9,7 +9,7 @@ import io
 from flask_gravatar import Gravatar
 from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
-from forms import RegisterForm, LoginForm, AddAddress, ProductForm, CommentForm, StockForm, TrackingForm
+from forms import RegisterForm, LoginForm, AddAddress, ProductForm, CommentForm, StockForm, TrackingForm, ShipmentSentForm, BoxForm, ShipmentArrivalForm
 from flask_login import LoginManager, login_user, current_user, login_required, logout_user, UserMixin, \
     AnonymousUserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -49,7 +49,7 @@ choc_email = os.getenv("CHOC_EMAIL")
 choc_password = os.getenv("CHOC_PASSWORD")
 
 from models import Cart, CartItem, Address, User, Orders, Product, Tag, OrderItem, Comment, ProductSalesHistory, \
-    PriceAlert, SiteVisitCount, Tasks
+    PriceAlert, SiteVisitCount, Tasks, Box, Shipment
 from functions import update_dynamic_prices, MAX_DAILY_CHANGE, ProductService
 
 from tasks import simple_task
@@ -1035,6 +1035,106 @@ def add_tracking(order_id):
 
 
 
+@app.route("/create-shipment", methods=["GET", "POST"])
+@login_required
+@admin_only
+def create_shipment():
+    form = ShipmentSentForm()  # a simple form with only transit_cost and tariff_cost
+
+    if form.validate_on_submit():
+        shipment = Shipment(
+            transit_cost=form.transit_cost.data,
+        )
+        db.session.add(shipment)
+        db.session.commit()
+
+        flash("Shipment created — now add boxes!", "success")
+        return redirect(url_for("add_box_to_shipment", shipment_id=shipment.id))
+
+    return render_template("create_shipment.html", form=form)
+
+@app.route("/shipment/<int:shipment_id>/add-box", methods=["GET", "POST"])
+def add_box_to_shipment(shipment_id):
+    shipment = Shipment.query.get_or_404(shipment_id)
+    form = BoxForm()
+    products = Product.query.all()
+
+    # ✅ choices must be set before validate_on_submit()
+    form.product_id.choices = [(p.id, p.name) for p in Product.query.all()]
+
+    if form.validate_on_submit():
+        box = Box(
+            shipment_id=shipment.id,
+            product_id=form.product_id.data,
+            quantity=form.quantity.data,
+            uk_price_at_shipment=form.uk_price_at_shipment.data,
+            weight_per_unit=form.weight_per_unit.data,
+            expiration_date=form.expiration_date.data,
+            dynamic_pricing_enabled=form.dynamic_pricing_enabled.data
+        )
+        db.session.add(box)
+        db.session.commit()
+
+        flash("Box added to shipment!", "success")
+        return redirect(url_for("add_box_to_shipment", shipment_id=shipment.id, products=products))
+
+    boxes = Box.query.filter_by(shipment_id=shipment.id).all()
+    return render_template("add_box_to_shipment.html", form=form, shipment=shipment, boxes=boxes)
+
+@app.route("/admin/shipments")
+@login_required
+@admin_only
+def view_shipments():
+    shipments = Shipment.query.order_by(Shipment.date_created.desc()).all()
+    return render_template("Admin/admin_shipments.html", shipments=shipments)
+
+
+@app.route("/admin/shipments/<int:shipment_id>/arrived", methods=["GET", "POST"])
+@login_required
+@admin_only
+def mark_shipment_arrived(shipment_id):
+    shipment = Shipment.query.get_or_404(shipment_id)
+    form = ShipmentArrivalForm()
+
+    # Convert all to float
+    shipment_total_cost = sum(float(box.uk_price_at_shipment) for box in shipment.boxes)
+    shipment_total_weight = sum(float(box.weight_per_unit) * box.quantity for box in shipment.boxes)
+    shipment_total_cost_including_shipping = shipment_total_cost + float(shipment.transit_cost)
+    tariff_cost = float(form.tariff_cost.data or 0.0)
+
+    if form.validate_on_submit():
+        shipment.has_arrived = True
+        shipment.date_arrived = datetime.utcnow()
+        shipment.tariff_cost = tariff_cost
+
+        for box in shipment.boxes:
+            # Total box weight
+            box_weight = float(box.weight_per_unit) * box.quantity
+
+            # Allocate shipping proportionally by box weight
+            shipping_share = (box_weight / shipment_total_weight) * float(shipment.transit_cost)
+
+            # Base cost including shipping
+            box_total_cost_incl_shipping = float(box.uk_price_at_shipment) + shipping_share
+
+            # Allocate tariff proportionally
+            tariff_share = (box_total_cost_incl_shipping / shipment_total_cost_including_shipping) * tariff_cost
+
+            # Final total cost for the box
+            total_box_cost = box_total_cost_incl_shipping + tariff_share
+
+            # Cost per bar
+            cost_per_bar = total_box_cost / box.quantity
+
+            # Store per-bar cost and selling price
+            box.floor_price = round(cost_per_bar, 2)
+            box.price = round(cost_per_bar * 1.15, 2)  # 15% margin
+
+        db.session.commit()
+        flash(f"Shipment #{shipment.id} marked as arrived.", "success")
+        return redirect(url_for("view_shipments"))
+
+    return render_template("Admin/shipment_arrival.html", shipment=shipment, form=form)
 
 
 @app.route('/create-product', methods=['GET', 'POST'])
@@ -1060,10 +1160,8 @@ def create_product():
         # Save the product to the database with the image path
         new_product = Product(
             name=form.name.data,
-            price=float(form.price.data),
             description=form.description.data,
-            weight=float(form.weight.data),
-            quantity=(form.quantity.data),
+            weight_per_unit=float(form.weight_per_unit.data),
             image=f'images/choc/{image_filename}' if image_filename else None
         )
         db.session.add(new_product)
@@ -1073,8 +1171,6 @@ def create_product():
         return redirect(url_for('home'))
 
     return render_template('create_product.html', form=form)
-
-
 
 
 
