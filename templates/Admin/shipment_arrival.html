@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Shipment #{{ shipment.id }} Arrival</h2>
+    <p>Date Created: {{ shipment.date_created.strftime("%Y-%m-%d") }}</p>
+
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <div class="mb-3">
+            {{ form.tariff_cost.label }}
+            {{ form.tariff_cost(class="form-control") }}
+        </div>
+        <button type="submit" class="btn btn-success">{{ form.submit.label.text }}</button>
+        <a href="{{ url_for('view_shipments') }}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

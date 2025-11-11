@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2>All Shipments</h2>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Date Created</th>
+                <th>Transit Cost (£)</th>
+                <th>Tariff Cost (£)</th>
+                <th>Arrived?</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for shipment in shipments %}
+            <tr>
+                <td>{{ shipment.id }}</td>
+                <td>{{ shipment.date_created.strftime("%Y-%m-%d") }}</td>
+                <td>{{ shipment.transit_cost }}</td>
+                <td>{{ shipment.tariff_cost }}</td>
+                <td>
+                    {% if shipment.has_arrived %}
+                        Yes ({{ shipment.date_arrived.strftime("%Y-%m-%d") }})
+                    {% else %}
+                        No
+                    {% endif %}
+                </td>
+                <td>
+                    {% if not shipment.has_arrived %}
+                    <form method="POST" action="{{ url_for('mark_shipment_arrived', shipment_id=shipment.id) }}">
+                        <button type="submit" class="btn btn-success btn-sm">Mark as Arrived</button>
+                    </form>
+                    {% else %}
+                    <span class="text-muted">Arrived</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
