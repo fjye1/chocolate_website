@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Add Boxes to Shipment #{{ shipment.id }}</h2>
+    <p>Created: {{ shipment.date_created.strftime("%Y-%m-%d") }}</p>
+
+    <form method="POST">
+        {{ form.hidden_tag() }}
+
+        <!-- Product Dropdown -->
+        <div class="mb-3">
+            {{ form.product_id.label }}
+            {{ form.product_id(class="form-select", id="product-select") }}
+        </div>
+
+        <!-- Image Preview -->
+        <img id="product-image-preview" src="" alt="Product Image" style="max-width: 150px; display: none; margin-bottom: 15px;">
+
+        <div class="mb-3">{{ form.quantity.label }} {{ form.quantity(class="form-control") }}</div>
+        <div class="mb-3">{{ form.uk_price_at_shipment.label }} {{ form.uk_price_at_shipment(class="form-control") }}</div>
+        <div class="mb-3">{{ form.weight_per_unit.label }} {{ form.weight_per_unit(class="form-control") }}</div>
+        <div class="mb-3">{{ form.expiration_date.label }} {{ form.expiration_date(class="form-control", type="date") }}</div>
+        <div class="form-check mb-3">{{ form.dynamic_pricing_enabled(class="form-check-input") }} {{ form.dynamic_pricing_enabled.label }}</div>
+
+        <button type="submit" class="btn btn-primary">{{ form.submit.label.text }}</button>
+    </form>
+
+    <hr>
+    <h4>Boxes in this Shipment</h4>
+    {% if boxes %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Quantity</th>
+                <th>Price (£)</th>
+                <th>Weight (kg)</th>
+                <th>Expiration</th>
+                <th>Image</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for box in boxes %}
+            <tr>
+                <td>{{ box.product.name }}</td>
+                <td>{{ box.quantity }}</td>
+                <td>{{ box.uk_price_at_shipment }}</td>
+                <td>{{ box.weight_per_unit }}</td>
+                <td>{{ box.expiration_date or '-' }}</td>
+                <td>
+                    {% if box.product.image %}
+                    <img src="{{ url_for('static', filename=box.product.image) }}" style="max-width: 80px;">
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No boxes added yet.</p>
+    {% endif %}
+</div>
+
+<script>
+    // Build a JS map of product IDs to image URLs
+    const products = {
+        {% for p in products %}
+            {{ p.id }}: "{{ url_for('static', filename=p.image) }}",
+        {% endfor %}
+    };
+
+    const select = document.getElementById('product-select');
+    const preview = document.getElementById('product-image-preview');
+
+    select.addEventListener('change', () => {
+        const selected = select.value;
+        if (selected && products[selected]) {
+            preview.src = products[selected];
+            preview.style.display = 'block';
+        } else {
+            preview.style.display = 'none';
+        }
+    });
+
+    // Show initial image if dropdown has a value
+    select.dispatchEvent(new Event('change'));
+</script>
+{% endblock %}

@@ -8,10 +8,7 @@
         {{ form.name.label }}<br>
         {{ form.name(size=40) }}
     </div>
-    <div>
-        {{ form.price.label }}<br>
-        {{ form.price() }}
-    </div>
+
     <div>
         {{ form.description.label }}<br>
         {{ form.description(size=60) }}
@@ -21,13 +18,10 @@
         {{ form.image(size=60) }}
     </div>
     <div>
-        {{ form.weight.label }}<br>
-        {{ form.weight() }}
+        {{ form.weight_per_unit.label }}<br>
+        {{ form.weight_per_unit() }}
     </div>
-    <div>
-        {{ form.quantity.label }}<br>
-        {{ form.quantity() }}
-    </div>
+
     <button type="submit" class="btn btn-primary mt-2">Create Product</button>
 </form>
 
