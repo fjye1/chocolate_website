@@ -1,7 +1,7 @@
 from flask import Flask, render_template, redirect, url_for, flash, request, abort, jsonify, make_response, current_app, \
     session
 import csv
-from decimal import Decimal
+from collections import defaultdict
 from sqlalchemy.orm import joinedload
 from xhtml2pdf import pisa
 import io
@@ -326,6 +326,22 @@ def product_detail(product_id):
     similar_products = results[1:4]
 
     comment_form = CommentForm()
+    # Only boxes that have arrived and still have stock
+    boxes = Box.query.join(Box.shipment) \
+        .filter(Box.product_id == product.id, Shipment.has_arrived == True) \
+        .order_by(Box.expiration_date.asc()) \
+        .all()
+
+    # Group by price
+    price_groups = defaultdict(int)
+    for box in boxes:
+        price_groups[box.price] += box.quantity
+
+    # Sort by price (optional)
+    price_groups = dict(sorted(price_groups.items()))
+
+    # Find the box with the nearest expiry
+    next_box = min(boxes, key=lambda b: b.expiration_date or datetime.max, default=None)
 
     if isinstance(current_user, AnonymousUserMixin):
         user_alert = None
@@ -373,7 +389,10 @@ def product_detail(product_id):
                            prices=prices,
                            sales=sales,
                            user_alert=user_alert,
-                           similar_products =similar_products)
+                           similar_products =similar_products,
+                           price_groups=price_groups,
+                           next_box=next_box
+                           )
 
 
 @app.route('/price-alert', methods=['POST'])

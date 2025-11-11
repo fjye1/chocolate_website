@@ -13,10 +13,34 @@
         <div class="col-md-6">
             <h2>{{ product.name }}</h2>
             <p>{{ product.description }}</p>
-            <h4>₹{{ product.price }}</h4>
-            <p><strong>Weight:</strong> {{ product.weight }}g</p>
-            <p><strong>Quantity in Stock:</strong> {{ product.quantity }}</p>
+            <p><strong>Weight per bar:</strong> {{ product.weight_per_unit }}g</p>
             <p><strong>Rating:</strong> {{ product.average_rating() }} ⭐</p>
+
+            <!-- Stock & Price Table -->
+            {% if price_groups %}
+            <h4>Available Bars</h4>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Price (₹)</th>
+                        <th>Quantity in stock</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for price, quantity in price_groups.items() %}
+                    <tr {% if next_box and price == next_box.price %}class="table-success"{% endif %}>
+                        <td>₹{{ '%.2f' % price }}</td>
+                        <td>{{ quantity }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% if next_box %}
+            <p><strong>Next expiring stock:</strong> {{ next_box.expiration_date.strftime("%Y-%m-%d") }}</p>
+            {% endif %}
+            {% else %}
+            <p>Out of stock</p>
+            {% endif %}
 
             <!-- Add to Cart Form -->
             <form method="POST" action="/add-to-cart">
