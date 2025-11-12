@@ -328,20 +328,26 @@ def product_detail(product_id):
     comment_form = CommentForm()
     # Only boxes that have arrived and still have stock
     boxes = Box.query.join(Box.shipment) \
-        .filter(Box.product_id == product.id, Shipment.has_arrived == True) \
-        .order_by(Box.expiration_date.asc()) \
+        .filter(Box.product_id == product.id, Shipment.has_arrived == True, Box.quantity > 0) \
+        .order_by(Box.price.desc()) \
         .all()
 
-    # Group by price
-    price_groups = defaultdict(int)
+    # Group by price and track total quantity + first expiry seen for that price
+    price_groups = {}
     for box in boxes:
-        price_groups[box.price] += box.quantity
+        if box.price not in price_groups:
+            price_groups[box.price] = {
+                'quantity': 0,
+                'expiry': box.expiration_date
+            }
+        price_groups[box.price]['quantity'] += box.quantity
+        
+    #TODO understand the functionality of this line
+    # # Ensure price_groups is ordered by price
+    # price_groups = dict(sorted(price_groups.items()))
 
-    # Sort by price (optional)
-    price_groups = dict(sorted(price_groups.items()))
-
-    # Find the box with the nearest expiry
-    next_box = min(boxes, key=lambda b: b.expiration_date or datetime.max, default=None)
+    # Find the cheapest box
+    next_box = min(boxes, key=lambda b: b.price, default=None)
 
     if isinstance(current_user, AnonymousUserMixin):
         user_alert = None
