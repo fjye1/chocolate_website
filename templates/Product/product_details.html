@@ -44,25 +44,27 @@
             <p>Out of stock</p>
             {% endif %}
 
+            <p>Box: {{ next_box.id }} (expires: {{ next_box.expiration_date.strftime('%Y-%m-%d') }})</p>
             <!-- Add to Cart Form -->
-            <form method="POST" action="/add-to-cart">
+            <form method="POST" action="{{ url_for('add_to_cart') }}">
+                {{ add_to_cart_form.hidden_tag() }}
+                {{ add_to_cart_form.product_id(value=product.id) }}
+                {{ add_to_cart_form.box_id(value=next_box.id) }}
+                {{ add_to_cart_form.shipment_id(value=next_box.shipment_id if next_box else '') }}
+
                 <div class="d-flex align-items-center gap-2">
-                    <!-- Quantity buttons -->
                     <button type="button" class="qty-btn minus" style="border: none; background: transparent;">
                         <img src="{{ url_for('static', filename='assets/dash-circle.svg') }}" alt="minus" width="36">
                     </button>
 
-                    <input type="hidden" name="product_id" value="{{ product.id }}">
-                    <input type="number" name="quantity" min="1" value="1" id="quantity-input"
-                           style="border: none; width: 40px; text-align: center;">
+                    {{ add_to_cart_form.quantity(id="quantity-input", value=1, style="border: none; width: 40px; text-align:
+                    center;") }}
 
                     <button type="button" class="qty-btn plus" style="border: none; background: transparent;">
                         <img src="{{ url_for('static', filename='assets/plus-circle.svg') }}" alt="plus" width="36">
                     </button>
 
-                    <button class="btn btn-primary rounded-pill px-3" type="submit" style="margin-left: 30px;">
-                        Add to Cart
-                    </button>
+                    {{ add_to_cart_form.submit(class="btn btn-primary rounded-pill px-3", style="margin-left: 30px;") }}
                 </div>
 
                 <!-- Interactive Price Chart -->

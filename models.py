@@ -26,8 +26,14 @@ class CartItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     cart_id = db.Column(db.Integer, db.ForeignKey('cart.id'))
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    box_id = db.Column(db.Integer, db.ForeignKey('box.id'))          # <-- new
+    shipment_id = db.Column(db.Integer, db.ForeignKey('shipment.id')) # <-- new
     quantity = db.Column(db.Integer, default=1)
+    price = db.Column(db.Numeric(10, 2))  # optional, store price at time of add-to-cart
+
     product = db.relationship('Product')
+    box = db.relationship('Box')
+    shipment = db.relationship('Shipment')
 
 
 class Comment(db.Model):
@@ -275,8 +281,13 @@ class OrderItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     order_id = db.Column(db.String(20), db.ForeignKey('orders.order_id'))
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    box_id = db.Column(db.Integer, db.ForeignKey('box.id'))        # new
+    shipment_id = db.Column(db.Integer, db.ForeignKey('shipment.id'))  # new
     quantity = db.Column(db.Integer, default=1)
-    price_at_purchase = db.Column(db.Float)  # optional
+    price_at_purchase = db.Column(db.Float)  # box-specific price
 
+    # Relationships
     product = db.relationship('Product', backref='order_items')
+    box = db.relationship('Box')              # optional, for easy access
+    shipment = db.relationship('Shipment')    # optional
     order = db.relationship('Orders', backref='items')

@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, PasswordField, DecimalField, IntegerField, TextAreaField, DateField, \
-    EmailField, SelectField, BooleanField
+    EmailField, SelectField, BooleanField, HiddenField
 from wtforms.validators import DataRequired, NumberRange, EqualTo, Email, Optional
 from flask_ckeditor import CKEditorField
 from flask_wtf.file import FileField, FileAllowed
@@ -14,6 +14,13 @@ class RegisterForm(FlaskForm):
         DataRequired(), EqualTo('password', message='Passwords must match.')
     ])
     submit = SubmitField("Sign Me Up!")
+
+class AddToCartForm(FlaskForm):
+    product_id = HiddenField('Product ID', validators=[DataRequired()])
+    box_id = HiddenField('Box ID', validators=[DataRequired()])
+    shipment_id = HiddenField('Shipment ID', validators=[DataRequired()])
+    quantity = IntegerField('Quantity', validators=[DataRequired(), NumberRange(min=1)])
+    submit = SubmitField('Add to Cart')
 
 class LoginForm(FlaskForm):
     email = StringField("Email", validators=[DataRequired()], render_kw={"autocomplete": "username"})

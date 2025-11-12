@@ -9,7 +9,7 @@ import io
 from flask_gravatar import Gravatar
 from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
-from forms import RegisterForm, LoginForm, AddAddress, ProductForm, CommentForm, StockForm, TrackingForm, ShipmentSentForm, BoxForm, ShipmentArrivalForm
+from forms import RegisterForm, LoginForm, AddAddress, ProductForm, CommentForm, StockForm, TrackingForm, ShipmentSentForm, BoxForm, ShipmentArrivalForm,AddToCartForm
 from flask_login import LoginManager, login_user, current_user, login_required, logout_user, UserMixin, \
     AnonymousUserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -313,6 +313,8 @@ def search():
 @app.route("/product/<int:product_id>", methods=["GET", "POST"])
 def product_detail(product_id):
     product = ProductService.get_product_by_id(product_id)
+
+
     results = (
         db.session.query(Product)
         .filter(Product.is_active == True)  # only active products
@@ -341,13 +343,23 @@ def product_detail(product_id):
                 'expiry': box.expiration_date
             }
         price_groups[box.price]['quantity'] += box.quantity
-        
+
     #TODO understand the functionality of this line
     # # Ensure price_groups is ordered by price
     # price_groups = dict(sorted(price_groups.items()))
 
     # Find the cheapest box
     next_box = min(boxes, key=lambda b: b.price, default=None)
+
+
+    add_to_cart_form = AddToCartForm(
+        product_id=product.id,
+        box_id=next_box.id if next_box else None,
+        shipment_id=next_box.shipment_id if next_box else None
+    )
+
+    print("add_to_cart_form.box_id.data:", add_to_cart_form.box_id.data)
+    print(next_box.id)
 
     if isinstance(current_user, AnonymousUserMixin):
         user_alert = None
@@ -390,6 +402,7 @@ def product_detail(product_id):
     return render_template("Product/product_details.html",
                            product=product,
                            form=comment_form,
+                           add_to_cart_form=add_to_cart_form,
                            can_comment=can_comment,
                            dates=dates,
                            prices=prices,
@@ -603,63 +616,81 @@ def set_current_address(address_id):
 
 @app.route('/add-to-cart', methods=['POST'])
 def add_to_cart():
-    product_id = int(request.form['product_id'])
-    quantity = int(request.form['quantity'])
+    form = AddToCartForm()
 
+    # if not form.validate_on_submit():
+    #     flash("Invalid form submission.", "danger")
+    #     return redirect(request.referrer)
+
+    product_id = form.product_id.data
+    box_id = form.box_id.data
+    shipment_id = form.shipment_id.data
+    quantity = form.quantity.data
+
+    # Fetch the box (contains price + stock)
+    box = Box.query.get_or_404(box_id)
     product = ProductService.get_product_by_id(product_id)
 
+    # Stock check
+    if quantity > box.quantity:
+        flash(f"Only {box.quantity} items left in stock for this box.", "warning")
+        return redirect(request.referrer or url_for('product_detail', product_id=product_id))
+
+    # Logged-in user
     if current_user.is_authenticated:
-        # Logged-in user: save in DB cart
         cart = get_user_cart(current_user.id)
         if not cart:
             cart = Cart(user_id=current_user.id, created_at=datetime.now(timezone.utc))
             db.session.add(cart)
             db.session.commit()
 
-        cart_item = CartItem.query.filter_by(cart_id=cart.id, product_id=product_id).first()
-
-        current_qty = cart_item.quantity if cart_item else 0
-        new_total_qty = current_qty + quantity
-
-        if new_total_qty > product.quantity:
-            flash(f"Only {product.quantity - current_qty} items left in stock. Please adjust quantity.", "warning")
-            return redirect(request.referrer or url_for('product_detail', product_id=product_id))
+        cart_item = CartItem.query.filter_by(cart_id=cart.id, box_id=box.id).first()
 
         if cart_item:
-            cart_item.quantity = new_total_qty
+            new_qty = cart_item.quantity + quantity
+            if new_qty > box.quantity:
+                flash(f"Only {box.quantity - cart_item.quantity} items left in stock.", "warning")
+                return redirect(request.referrer or url_for('product_detail', product_id=product_id))
+            cart_item.quantity = new_qty
         else:
-            cart_item = CartItem(cart_id=cart.id, product_id=product_id, quantity=quantity)
+            cart_item = CartItem(
+                cart_id=cart.id,
+                product_id=product.id,
+                box_id=box.id,
+                shipment_id=shipment_id,
+                quantity=quantity,
+                price=box.price
+            )
             db.session.add(cart_item)
 
         db.session.commit()
 
+    # Guest user (session-based)
     else:
-        # Guest user: save in session basket
         basket = session.get('basket', [])
-
+        found = False
         for item in basket:
-            if item['product_id'] == product_id:
-                current_qty = item['quantity']
-                new_total_qty = current_qty + quantity
-                if new_total_qty > product.quantity:
-                    flash(f"Only {product.quantity - current_qty} items left in stock. Please adjust quantity.",
-                          "warning")
+            if item['box_id'] == box_id:
+                new_qty = item['quantity'] + quantity
+                if new_qty > box.quantity:
+                    flash(f"Only {box.quantity - item['quantity']} items left in stock.", "warning")
                     return redirect(request.referrer or url_for('product_detail', product_id=product_id))
-                item['quantity'] = new_total_qty
+                item['quantity'] = new_qty
+                found = True
                 break
-        else:
-            if quantity > product.quantity:
-                flash(f"Only {product.quantity} items left in stock. Please adjust quantity.", "warning")
-                return redirect(request.referrer or url_for('product_detail', product_id=product_id))
+
+        if not found:
             basket.append({
                 'product_id': product_id,
+                'box_id': box_id,
+                'shipment_id': shipment_id,
                 'quantity': quantity,
-                'price': float(product.price)
+                'price': float(box.price)
             })
 
         session['basket'] = basket
 
-    flash(f"Added {quantity} of the product to your cart.", "success")
+    flash(f"Added {quantity} of '{product.name}' to your cart.", "success")
     return redirect(request.referrer or url_for('cart'))
 
 
@@ -677,32 +708,35 @@ def remove_cart_item(item_id):
 
 @app.route('/cart')
 def cart():
+    items = []
+    total = 0
+
     if current_user.is_authenticated:
         cart = get_user_cart(current_user.id)
-        items = []
-        total = 0
-        for ci in cart.items if cart and cart.items else []:
-            items.append({
-                'product': ci.product,
-                'quantity': ci.quantity,
-                'price': ci.product.price,
-                'cart_item_id': ci.id
-            })
-            total += ci.product.price * ci.quantity
+        if cart and cart.items:
+            for ci in cart.items:
+                items.append({
+                    'product': ci.product,
+                    'box': ci.box,  # include box info
+                    'quantity': ci.quantity,
+                    'price': float(ci.price),  # use price stored in CartItem
+                    'cart_item_id': ci.id
+                })
+                total += float(ci.price) * ci.quantity
     else:
         basket = session.get('basket', [])
-        items = []
-        total = 0
         for b in basket:
             product = Product.query.get(b['product_id'])
-            if product:
+            box = Box.query.get(b['box_id']) if b.get('box_id') else None
+            if product and box:
                 items.append({
                     'product': product,
+                    'box': box,
                     'quantity': b['quantity'],
-                    'price': b['price'],
-                    'cart_item_id': None  # no DB id
+                    'price': float(b['price']),
+                    'cart_item_id': None
                 })
-                total += b['price'] * b['quantity']
+                total += float(b['price']) * b['quantity']
 
     return render_template('cart.html', items=items, total=total)
 
@@ -752,13 +786,18 @@ def checkout():
         flash("Your cart is empty.", "warning")
         return redirect(url_for('home'))
 
-    # Soft stock check
+    # Soft stock check against box quantity
     for item in cart.items:
-        if item.quantity > item.product.quantity:
-            flash(f"Not enough stock for '{item.product.name}'. Only {item.product.quantity} left in stock.", "danger")
+        if not item.box:
+            flash(f"Box for '{item.product.name}' no longer exists.", "danger")
+            return redirect(url_for('cart'))
+        if item.quantity > item.box.quantity:
+            flash(f"Not enough stock for '{item.product.name}' (Box: {item.box.name}). Only {item.box.quantity} left.", "danger")
             return redirect(url_for('cart'))
 
-    total = sum(item.product.price * item.quantity for item in cart.items)
+    # Calculate total based on CartItem price (box-specific)
+    total = sum(float(item.price) * item.quantity for item in cart.items)
+
     return render_template('checkout.html', total=total)
 
 
@@ -773,15 +812,19 @@ def cart_data():
         items = [
             {
                 'product_id': item.product_id,
-                'name': item.product.name,
+                'box_id': item.box_id,
+                'shipment_id': item.shipment_id,
+                'product_name': item.product.name,  # use related product
                 'quantity': item.quantity,
-                'price': item.product.price
-            } for item in cart.items
+                'price': float(item.price),  # box-specific price
+                'expiration_date': item.box.expiration_date.strftime('%Y-%m-%d') if item.box else None
+            }
+            for item in cart.items
         ]
         total = sum(item['price'] * item['quantity'] for item in items)
         data = {'items': items, 'total': total}
 
-    print('Cart Data:', data)  # <-- Server-side log here
+    print('Cart Data:', data)  # Server-side log
     return jsonify(data)
 
 
@@ -791,15 +834,16 @@ def create_payment_intent():
     data = request.json
     print('Received data for PaymentIntent:', data)
 
-    cart = data.get('cart', [])
+    cart_items = data.get('cart', [])
     amount = 0
-    for item in cart:
+    for item in cart_items:
+        # Ensure we use the box-specific price
         price = item.get('price', 0)
         quantity = item.get('quantity', 0)
         try:
-            price_pence = int(round(float(price) * 100))
+            price_paise = int(round(float(price) * 100))  # INR smallest unit
             qty = int(quantity)
-            amount += price_pence * qty
+            amount += price_paise * qty
         except (ValueError, TypeError):
             return jsonify({'error': 'Invalid price or quantity in cart'}), 400
 
@@ -807,13 +851,13 @@ def create_payment_intent():
         return jsonify({'error': 'Invalid total amount'}), 400
 
     import json
-    cart_str = json.dumps(cart)
+    cart_str = json.dumps(cart_items)
 
     intent = stripe.PaymentIntent.create(
         amount=amount,
         currency='inr',
         metadata={
-            'user_id': str(current_user.id),  # string because metadata values must be strings
+            'user_id': str(current_user.id),  # must be string
             'cart': cart_str
         },
         automatic_payment_methods={'enabled': True}
@@ -849,7 +893,9 @@ def payment_success():
         return redirect(url_for('checkout'))
 
     order_id = f"ORD{int(datetime.now(timezone.utc).timestamp())}"
-    total_amount = sum(item.product.price * item.quantity for item in cart.items)
+
+    # Total uses CartItem.price (box-specific)
+    total_amount = sum(float(item.price) * item.quantity for item in cart.items)
 
     order = Orders(
         order_id=order_id,
@@ -866,21 +912,28 @@ def payment_success():
         order_item = OrderItem(
             order=order,
             product=item.product,
+            box_id=item.box_id,
+            shipment_id=item.shipment_id,
             quantity=item.quantity,
-            price_at_purchase=item.product.price
+            price_at_purchase=float(item.price)  # use box-specific price
         )
         db.session.add(order_item)
-        item.product.sold_today = (item.product.sold_today or 0) + item.quantity
-        item.product.quantity -= item.quantity
-        if item.product.quantity <= 0:
-            item.product.is_active = False
 
+        # Adjust stock on the box, not the product
+        # Update sold_today for the box, not product
+        if item.box:
+            item.box.sold_today = (item.box.sold_today or 0) + item.quantity
+            item.box.quantity -= item.quantity
+            if item.box.quantity <= 0:
+                item.box.is_active = False
+
+    # Clear cart items
     for item in cart.items:
         db.session.delete(item)
 
     db.session.commit()
 
-    # save task to the database
+    # Queue invoice
     try:
         new_task = Tasks(
             task_name="send_invoice",
@@ -889,8 +942,6 @@ def payment_success():
         )
         db.session.add(new_task)
         db.session.commit()
-
-
     except Exception as e:
         print(f"[Invoice Queue Error]: {e}")
         flash("Order complete, but invoice could not be queued for email.", "warning")
