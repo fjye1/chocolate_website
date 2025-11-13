@@ -174,6 +174,7 @@ def load_csv_data():
 @app.route("/run-dynamic-pricing")
 def run_dynamic_pricing():
     update_dynamic_prices()
+
     flash("Dynamic pricing updated successfully!", "success")
     return redirect(url_for("product_page"))
 
@@ -1347,7 +1348,7 @@ def admin_products():
     # Sort products by profit_percent descending
     products.sort(key=lambda p: p.profit_percent, reverse=True)
 
-    return render_template("Admin/admin_products.html", products=products, date=date)
+    return render_template("Admin/admin_products.html", products=products, date=date, timedelta=timedelta)
 
 
 @app.route('/admin/products/edit/<int:product_id>', methods=['GET', 'POST'])

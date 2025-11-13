@@ -10,14 +10,17 @@ MAX_DAILY_CHANGE = 0.05  # 5%
 def update_dynamic_prices():
     today = date.today()
     boxes = Box.query.filter_by(is_active=True, dynamic_pricing_enabled=True).all()
-
+    print(f"Found {len(boxes)} boxes")
     for box in boxes:
+        print(f"Processing box {box.id}")
         if not box.expiration_date:
-            continue  # skip if no expiry date
+            print(f"  Skipped - no expiration date")
+            continue
 
-        days_left = (box.expiration_date.date() - today).days
+        days_left = (box.expiration_date - today).days
         if days_left <= 0:
-            continue  # box is expired
+            print(f"  Skipped - expired ({days_left} days)")
+            continue
 
         quantity = box.quantity
         target_daily_sales = quantity / days_left if days_left > 0 else 1
@@ -32,39 +35,36 @@ def update_dynamic_prices():
         # Step 1: Calculate the new price
         new_price = box.price * price_multiplier
 
-        # Step 2: Apply floor
+        # Step 2: Apply floor price
         if box.floor_price and new_price < box.floor_price:
             new_price = box.floor_price
 
-        # Step 3: Set pending price and sales target
-        box.pending_price = round(new_price, 2)
-        box.target_daily_sales = target_daily_sales
-
-
-
-        # Save sales history
+        # Step 3: Save sales history BEFORE changing price or resetting sold_today
         sales_history = BoxSalesHistory(
-            box_id =box.id,
-            date=date.today(),
-            sold_quantity=box.sold_today,
-            sold_price=box.price,  # This is the price used during the day
-            target_daily_sales=box.target_daily_sales,
-            demand=box.sold_today/box.target_daily_sales,
+            box_id=box.id,
+            date=today,
+            sold_quantity=sold_today,
+            sold_price=box.price,  # price used during the day
+            target_daily_sales=target_daily_sales,
+            demand=(sold_today / target_daily_sales) if target_daily_sales > 0 else 0,
             floor_price=box.floor_price
         )
         db.session.add(sales_history)
 
-        # Step 4: Roll pending price into active price (e.g. at end of day)
+        # Step 4: Update box price and reset for next day
+        box.pending_price = round(new_price, 2)
         box.price = box.pending_price
         box.last_price_update = datetime.utcnow()
-
-        # Optional: reset pending price until next calculation
+        box.target_daily_sales = target_daily_sales
         box.pending_price = None
         box.sold_today = 0
 
-
-
-    db.session.commit()
+    try:
+        db.session.commit()
+        print("Commit successful!")
+    except Exception as e:
+        print(f"Commit failed: {e}")
+        db.session.rollback()
 
 
 class ProductService:
