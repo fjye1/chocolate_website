@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Import your app and the function
 from main import app, db  # Replace 'your_main_app_file' with your actual main file name
-from models import Product, ProductSalesHistory
+from models import Product, BoxSalesHistory
 
 MAX_DAILY_CHANGE = 0.05  # 5%
 
@@ -45,7 +45,7 @@ def update_dynamic_prices():
         product.target_daily_sales = target_daily_sales
 
         # Save sales history
-        sales_history = ProductSalesHistory(
+        sales_history = BoxSalesHistory(
             product_id=product.id,
             date=date.today(),
             sold_quantity=product.sold_today,

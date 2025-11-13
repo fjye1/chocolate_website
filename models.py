@@ -123,6 +123,10 @@ class Product(db.Model):
             .filter(Comment.product_id == self.id).scalar()
         return round(avg or 0, 1)
 
+    def update_active_status(self):
+        """Sync product active status based on its boxes."""
+        self.is_active = any(box.active for box in self.boxes)
+
 # Box model (per-lot / per-box of a product)
 class Box(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -146,6 +150,7 @@ class Box(db.Model):
     last_price_update = db.Column(db.DateTime, default=func.now())
     floor_price = db.Column(db.Float, nullable=True)
     price = db.Column(db.Float, nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
 
     @property
     def total_price(self):
@@ -199,9 +204,9 @@ from datetime import datetime
 
 
 ############### this section contains data for the dynamic part
-class ProductSalesHistory(db.Model):
+class BoxSalesHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    box_id = db.Column(db.Integer, db.ForeignKey('box.id'), nullable=False)
     date = db.Column(db.Date, nullable=False)
     sold_quantity = db.Column(db.Integer, default=0)
     sold_price = db.Column(db.Float, nullable=False)  # price per unit sold
@@ -209,7 +214,9 @@ class ProductSalesHistory(db.Model):
     demand = db.Column(db.Float, nullable=False)
     floor_price = db.Column(db.Float, nullable=False)
 
-    product = db.relationship('Product', backref=db.backref('sales_history', lazy='select'))
+    box = db.relationship('Box', backref=db.backref('sales_history', lazy='select'))
+
+
 
 
 ############### this section contains data for the dynamic part
@@ -290,4 +297,35 @@ class OrderItem(db.Model):
     product = db.relationship('Product', backref='order_items')
     box = db.relationship('Box')              # optional, for easy access
     shipment = db.relationship('Shipment')    # optional
-    order = db.relationship('Orders', backref='items')
+    order = db.relationship('Orders', backref='order_items')
+
+from sqlalchemy import event
+
+from sqlalchemy import event
+
+@event.listens_for(Box, 'before_update')
+def update_box_active(mapper, connection, target):
+    """Keep box.active in sync with quantity."""
+    if target.quantity <= 0 and target.is_active:
+        target.is_active = False
+    elif target.quantity > 0 and not target.is_active:
+        target.is_active = True
+
+
+@event.listens_for(Box, 'after_update')
+@event.listens_for(Box, 'after_insert')
+def sync_product_is_active(mapper, connection, target):
+    """Update product.is_active after a box is updated or added."""
+    product = target.product   # <-- this is the Box's related Product
+    if not product:
+        return
+
+    # Determine if any boxes under this product are active
+    product.is_active = any(box.is_active for box in product.boxes)
+
+    # Directly update the product in the database
+    connection.execute(
+        Product.__table__.update()
+        .where(Product.id == product.id)
+        .values(is_active=product.is_active)
+    )

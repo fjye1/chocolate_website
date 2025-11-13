@@ -48,7 +48,7 @@ ckeditor = CKEditor(app)
 choc_email = os.getenv("CHOC_EMAIL")
 choc_password = os.getenv("CHOC_PASSWORD")
 
-from models import Cart, CartItem, Address, User, Orders, Product, Tag, OrderItem, Comment, ProductSalesHistory, \
+from models import Cart, CartItem, Address, User, Orders, Product, Tag, OrderItem, Comment, BoxSalesHistory, \
     PriceAlert, SiteVisitCount, Tasks, Box, Shipment
 from functions import update_dynamic_prices, MAX_DAILY_CHANGE, ProductService
 
@@ -275,7 +275,7 @@ def product_page():
             PriceAlert.product_id.in_(product_ids)
         ).all()
         # Map product_id → alert
-        user_alerts = {alert.product_id: alert for alert in alerts}
+        user_alerts = {alert.box_id: alert for alert in alerts}
 
     all_tags = (
         db.session.query(Tag, func.count(Product.id).label("tag_count"))
@@ -391,10 +391,17 @@ def product_detail(product_id):
         db.session.commit()
         return redirect(url_for('product_detail', product_id=product_id))
 
-    # Price history chart data
     start_date = date.today() - timedelta(days=28)
-    recent_sales = [s for s in product.sales_history if s.date >= start_date]
+
+    # Collect all BoxSalesHistory for this product's boxes in the last 28 days
+    recent_sales = []
+    for box in product.boxes:
+        recent_sales.extend([s for s in box.sales_history if s.date >= start_date])
+
+    # Sort by date
     recent_sales.sort(key=lambda s: s.date)
+
+    # Build lists
     dates = [s.date.strftime('%Y-%m-%d') for s in recent_sales]
     prices = [s.sold_price for s in recent_sales]
     sales = [s.sold_quantity for s in recent_sales]
@@ -508,15 +515,33 @@ def login():
                 cart = Cart(user_id=current_user.id, created_at=datetime.now(timezone.utc))
                 db.session.add(cart)
                 db.session.commit()
+
             for b in basket:
-                existing_item = CartItem.query.filter_by(cart_id=cart.id, product_id=b['product_id']).first()
+                # Ensure the box exists
+                box = Box.query.get(b.get('box_id'))
+                if not box:
+                    continue  # skip items with no valid box
+
+                # Check for existing CartItem for this box
+                existing_item = CartItem.query.filter_by(cart_id=cart.id, box_id=box.id).first()
                 if existing_item:
-                    existing_item.quantity += b['quantity']
+                    new_qty = existing_item.quantity + b['quantity']
+                    if new_qty > box.quantity:
+                        new_qty = box.quantity  # cap to available stock
+                    existing_item.quantity = new_qty
                 else:
-                    new_item = CartItem(cart_id=cart.id, product_id=b['product_id'], quantity=b['quantity'])
+                    new_item = CartItem(
+                        cart_id=cart.id,
+                        box_id=box.id,
+                        product_id=box.product_id,
+                        shipment_id=box.shipment_id,
+                        quantity=b['quantity'],
+                        price=box.price
+                    )
                     db.session.add(new_item)
+
             db.session.commit()
-            session.pop('basket', None)  # optional: clear guest basket
+            session.pop('basket', None)  # clear guest basket
         return redirect(url_for('home'))
 
     return render_template("login.html", form=form)
@@ -655,9 +680,9 @@ def add_to_cart():
         else:
             cart_item = CartItem(
                 cart_id=cart.id,
-                product_id=product.id,
                 box_id=box.id,
-                shipment_id=shipment_id,
+                product_id=box.product_id,
+                shipment_id=box.shipment_id,
                 quantity=quantity,
                 price=box.price
             )
@@ -715,11 +740,19 @@ def cart():
         cart = get_user_cart(current_user.id)
         if cart and cart.items:
             for ci in cart.items:
+                # Fail early if the box is missing
+                if ci.box is None:
+                    raise ValueError(f"CartItem {ci.id} has no associated Box!")
+
+                # Price should never be None; if it is, we want it to fail
+                if ci.price is None:
+                    raise ValueError(f"CartItem {ci.id} has no price set!")
+
                 items.append({
-                    'product': ci.product,
-                    'box': ci.box,  # include box info
+                    'product': ci.box.product,  # parent product
+                    'box': ci.box,               # include box info
                     'quantity': ci.quantity,
-                    'price': float(ci.price),  # use price stored in CartItem
+                    'price': float(ci.price),    # box-specific price
                     'cart_item_id': ci.id
                 })
                 total += float(ci.price) * ci.quantity
@@ -728,15 +761,22 @@ def cart():
         for b in basket:
             product = Product.query.get(b['product_id'])
             box = Box.query.get(b['box_id']) if b.get('box_id') else None
-            if product and box:
-                items.append({
-                    'product': product,
-                    'box': box,
-                    'quantity': b['quantity'],
-                    'price': float(b['price']),
-                    'cart_item_id': None
-                })
-                total += float(b['price']) * b['quantity']
+
+            if product is None:
+                raise ValueError(f"Basket item with product_id {b.get('product_id')} not found")
+            if box is None:
+                raise ValueError(f"Basket item with box_id {b.get('box_id')} not found")
+            if b.get('price') is None:
+                raise ValueError(f"Basket item for box_id {b.get('box_id')} has no price")
+
+            items.append({
+                'product': product,
+                'box': box,
+                'quantity': b['quantity'],
+                'price': float(b['price']),
+                'cart_item_id': None
+            })
+            total += float(b['price']) * b['quantity']
 
     return render_template('cart.html', items=items, total=total)
 
@@ -753,12 +793,12 @@ def admin_cart():
         total = 0
         for ci in cart.items if cart and cart.items else []:
             items.append({
-                'product': ci.product,
+                'product': ci.box,
                 'quantity': ci.quantity,
-                'price': ci.product.price,
+                'price': ci.box.price,
                 'cart_item_id': ci.id
             })
-            total += ci.product.price * ci.quantity
+            total += ci.box.price * ci.quantity
     else:
         basket = session.get('basket', [])
         items = []
@@ -789,10 +829,10 @@ def checkout():
     # Soft stock check against box quantity
     for item in cart.items:
         if not item.box:
-            flash(f"Box for '{item.product.name}' no longer exists.", "danger")
+            flash(f"Box for '{item.box.name}' no longer exists.", "danger")
             return redirect(url_for('cart'))
         if item.quantity > item.box.quantity:
-            flash(f"Not enough stock for '{item.product.name}' (Box: {item.box.name}). Only {item.box.quantity} left.", "danger")
+            flash(f"Not enough stock for '{item.box.name}' (Box: {item.box.name}). Only {item.box.quantity} left.", "danger")
             return redirect(url_for('cart'))
 
     # Calculate total based on CartItem price (box-specific)
@@ -811,10 +851,10 @@ def cart_data():
     else:
         items = [
             {
-                'product_id': item.product_id,
+                'product_id': item.box.product_id,  # <-- parent product
                 'box_id': item.box_id,
                 'shipment_id': item.shipment_id,
-                'product_name': item.product.name,  # use related product
+                'product_name': item.box.product.name,  # product name
                 'quantity': item.quantity,
                 'price': float(item.price),  # box-specific price
                 'expiration_date': item.box.expiration_date.strftime('%Y-%m-%d') if item.box else None
@@ -911,11 +951,11 @@ def payment_success():
     for item in cart.items:
         order_item = OrderItem(
             order=order,
-            product=item.product,
+            product_id=item.product_id,  # Product, not box
             box_id=item.box_id,
             shipment_id=item.shipment_id,
             quantity=item.quantity,
-            price_at_purchase=float(item.price)  # use box-specific price
+            price_at_purchase=float(item.price)
         )
         db.session.add(order_item)
 
@@ -1203,8 +1243,8 @@ def mark_shipment_arrived(shipment_id):
             cost_per_bar = total_box_cost / box.quantity
 
             # Store per-bar cost and selling price
-            box.floor_price = round(cost_per_bar, 2)
-            box.price = round(cost_per_bar * 1.15, 2)  # 15% margin
+            box.floor_price = round(cost_per_bar *0.8, 2) # price floor set at 80% of cost
+            box.price = round(cost_per_bar * 1.15, 2)  # 15% margin or 115% of cost
 
         db.session.commit()
         flash(f"Shipment #{shipment.id} marked as arrived.", "success")
@@ -1267,35 +1307,37 @@ def admin_archive():
 def admin_products():
     days_back = 28
     start_date = date.today() - timedelta(days=days_back)
-
-    products = Product.query.options(joinedload(Product.sales_history)).all()
     now = datetime.utcnow()
 
+    products = Product.query.options(joinedload(Product.boxes).joinedload(Box.sales_history)).all()
+
     for product in products:
-        # Set expiration_date to today + 30 days if it's None
-        if not product.expiration_date:
-            product.expiration_date = datetime.today() + timedelta(days=30)
+        # Gather all active boxes
+        active_boxes = [box for box in product.boxes if box.is_active]
 
-        # Calculate days left
-        product.days_left = (product.expiration_date - datetime.today()).days
 
-        # Filter recent sales
-        product.recent_sales = [
-            sale for sale in product.sales_history
-            if sale.date >= start_date
-        ]
+        # Set a default expiration for boxes with none
+        for box in active_boxes:
+            if not box.expiration_date:
+                box.expiration_date = date.today() + timedelta(days=30)  # use date.today()
+            box.days_left = (box.expiration_date - date.today()).days  # also use date.today()
+
+        # Aggregate sales from last `days_back` days
+        recent_sales = []
+        for box in active_boxes:
+            recent_sales.extend([s for s in box.sales_history if s.date >= start_date])
 
         # Calculate totals
-        total_revenue = 0
-        total_cost = 0
-        for sale in product.recent_sales:
-            total_revenue += sale.sold_quantity * sale.sold_price
-            total_cost += sale.sold_quantity * (product.floor_price or 0)
+        total_revenue = sum(s.sold_quantity * s.sold_price for s in recent_sales)
+        total_cost = sum(s.sold_quantity * (s.floor_price or 0) for s in recent_sales)
 
         product.profit = total_revenue - total_cost
         product.profit_percent = (product.profit / total_revenue * 100) if total_revenue > 0 else 0
 
-        # Calculate average active price alert target_price
+        # Filter recent sales per product for display
+        product.recent_sales = sorted(recent_sales, key=lambda s: s.date)
+
+        # Average active price alert target_price
         avg_alert_price = db.session.query(func.avg(PriceAlert.target_price)).filter(
             PriceAlert.product_id == product.id,
             PriceAlert.expires_at > now
@@ -1305,7 +1347,7 @@ def admin_products():
     # Sort products by profit_percent descending
     products.sort(key=lambda p: p.profit_percent, reverse=True)
 
-    return render_template("Admin/admin_products.html", products=products)
+    return render_template("Admin/admin_products.html", products=products, date=date)
 
 
 @app.route('/admin/products/edit/<int:product_id>', methods=['GET', 'POST'])
