@@ -10,8 +10,11 @@
         <img src="{{ url_for('static', filename=product.image) }}" alt="Product Image"
              class="card-img-top" height="225"
              style="width: 100px; height: 100px; object-fit: cover; border-radius: 5px;">
-        <a href="{{ url_for('product_detail', product_id=product.id) }}">{{ product.name }}</a> -
-        ₹{{ "%.2f"|format(product.price) }}
+        <a href="{{ url_for('product_detail', product_id=product.id) }}" style="text-decoration: bold; color:inherit;">
+            {{ product.name }}
+        </a>
+        {% set box = product.lowest_price_box() %}
+        ₹{{ "%.2f"|format(box.price) }}
         <p>{{ product.description[:100] }}{% if product.description|length > 100 %}...{% endif %}</p>
     </li>
     {% endfor %}
