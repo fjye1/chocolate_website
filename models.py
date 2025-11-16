@@ -127,6 +127,9 @@ class Product(db.Model):
         """Sync product active status based on its boxes."""
         self.is_active = any(box.active for box in self.boxes)
 
+    def lowest_price_box(self):
+        return min(self.boxes, key=lambda b: b.price) if self.boxes else None
+
 # Box model (per-lot / per-box of a product)
 class Box(db.Model):
     id = db.Column(db.Integer, primary_key=True)

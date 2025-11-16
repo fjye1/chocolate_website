@@ -226,12 +226,14 @@ def home():
     random_comments = Comment.query.order_by(func.random()).limit(3).all()
     products = Product.query.filter_by(is_active=True).all()
     sorted_products = sorted(products, key=lambda p: p.average_rating(), reverse=True)
+    boxes = Box.query.join(Product).filter(Product.is_active == True).all()
 
     return render_template("home_page.html",
                            products=products,
                            admin=admin,
                            comments=random_comments,
-                           sorted_products=sorted_products)
+                           sorted_products=sorted_products,
+                           boxes = boxes)
 
 
 @app.route('/product')
