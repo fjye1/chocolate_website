@@ -157,7 +157,7 @@ class Box(db.Model):
 
     @property
     def total_price(self):
-        return self.quantity * self.uk_price_at_shipment
+        return self.uk_price_at_shipment
 
     @property
     def total_weight(self):

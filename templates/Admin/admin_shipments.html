@@ -4,40 +4,74 @@
     <h2>All Shipments</h2>
     <table class="table table-striped">
         <thead>
-            <tr>
-                <th>ID</th>
-                <th>Date Created</th>
-                <th>Transit Cost (£)</th>
-                <th>Tariff Cost (£)</th>
-                <th>Arrived?</th>
-                <th>Actions</th>
-            </tr>
+        <tr>
+            <th>ID</th>
+            <th>Date Created</th>
+            <th>Uk Price</th>
+            <th>Weight (Kg)</th>
+            <th>Transit Cost (£)</th>
+            <th>Tariff Cost (£)</th>
+            <th>Total Cost (£)</th>
+            <th>Arrived?</th>
+            <th>Profit (£)</th>
+<!--            <th>Product Left</th>-->
+        </tr>
         </thead>
         <tbody>
-            {% for shipment in shipments %}
-            <tr>
-                <td>{{ shipment.id }}</td>
-                <td>{{ shipment.date_created.strftime("%Y-%m-%d") }}</td>
-                <td>{{ shipment.transit_cost }}</td>
-                <td>{{ shipment.tariff_cost }}</td>
-                <td>
-                    {% if shipment.has_arrived %}
-                        Yes ({{ shipment.date_arrived.strftime("%Y-%m-%d") }})
-                    {% else %}
-                        No
-                    {% endif %}
-                </td>
-                <td>
-                    {% if not shipment.has_arrived %}
-                    <form method="POST" action="{{ url_for('mark_shipment_arrived', shipment_id=shipment.id) }}">
-                        <button type="submit" class="btn btn-success btn-sm">Mark as Arrived</button>
-                    </form>
-                    {% else %}
-                    <span class="text-muted">Arrived</span>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
+        {% for shipment in shipments %}
+        <tr>
+            <td>{{ shipment.id }}</td>
+            <td>{{ shipment.date_created.strftime("%Y-%m-%d") }}</td>
+
+            <!-- UK Price -->
+            <td>{{ "%.2f"|format(shipment.total_product_cost) }}</td>
+
+            <!-- Weight -->
+            <td>{{ "%.3f"|format(shipment.total_weight / 1000) }}</td>
+
+            <!-- Transit Cost -->
+            <td>{{ "%.2f"|format(shipment.transit_cost) }}</td>
+
+            <!-- Tariff Cost -->
+            <td>{{ "%.2f"|format(shipment.tariff_cost) }}</td>
+
+            <!-- Total Cost -->
+            <td>{{ "%.2f"|format(shipment.total_cost) }}</td>
+
+            <!-- Arrived Section -->
+            <td>
+                {% if shipment.has_arrived %}
+                Yes ({{ shipment.date_arrived.strftime("%Y-%m-%d") }})
+                {% else %}
+                No
+                {% endif %}
+            </td>
+
+            <!-- Profit -->
+            <td>{{ "%.2f"|format(shipment.profitability) }}</td>
+
+            <!-- Product Left -->
+<!--            <td>{{ shipment.product_left }}</td>-->
+        </tr>
+
+        <!-- Action Row for marking arrived -->
+        <tr>
+            <td colspan="10" class="text-end">
+                {% if not shipment.has_arrived %}
+                <form method="POST"
+                      action="{{ url_for('mark_shipment_arrived', shipment_id=shipment.id) }}"
+                      class="d-inline">
+                    <button type="submit" class="btn btn-success btn-sm">
+                        Mark as Arrived
+                    </button>
+                </form>
+                {% else %}
+                <span class="text-muted">Arrived</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+
         </tbody>
     </table>
 </div>
