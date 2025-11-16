@@ -134,7 +134,7 @@ class Product(db.Model):
             return None
 
         # Sort first by price, then by expiration date (soonest first)
-        return min(arrived_boxes, key=lambda b: (b.uk_price_at_shipment, b.expiration_date or datetime.max))
+        return min(arrived_boxes, key=lambda b: (b.price))
 
 # Box model (per-lot / per-box of a product)
 class Box(db.Model):

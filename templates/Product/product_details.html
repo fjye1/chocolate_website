@@ -25,6 +25,8 @@
                     <th>Price (₹)</th>
                     <th>Quantity in stock</th>
                     <th>expiry date</th>
+                    <th>Box id</th>
+                    <th>Shipment id</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -33,6 +35,8 @@
                     <td>₹{{ '%.2f' % price }}</td>
                     <td>{{ data.quantity }}</td>
                     <td>{{ data.expiry.strftime('%Y-%m-%d') if data.expiry else 'N/A' }}</td>
+                    <td>{{ data.box.id}}</td>
+                    <td>{{ data.shipment.id}}</td>
                 </tr>
                 {% endfor %}
                 </tbody>
@@ -153,7 +157,8 @@
                     <div class="card-body">
                         <h5 class="card-title">{{ product.name }}</h5>
                         <p><strong>Rating:</strong> {{ product.average_rating() }} ⭐</p>
-                        <p class="card-text"><strong>₹{{ product.price }}</strong></p>
+                        {% set box = product.lowest_price_box() %}
+                        <p class="card-text"><strong>₹{{ box.price }}</strong></p>
                     </div>
                 </a>
             </div>

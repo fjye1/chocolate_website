@@ -344,7 +344,9 @@ def product_detail(product_id):
         if box.price not in price_groups:
             price_groups[box.price] = {
                 'quantity': 0,
-                'expiry': box.expiration_date
+                'expiry': box.expiration_date,
+                'box': box,  # add box reference
+                'shipment': box.shipment  # add shipment reference
             }
         price_groups[box.price]['quantity'] += box.quantity
 
