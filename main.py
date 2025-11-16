@@ -244,6 +244,7 @@ def product_page():
 
     query = Product.query.filter_by(is_active=True)
 
+
     if product_key:
         tag = Tag.query.filter(Tag.name.ilike(f"%{product_key}%")).first()
         if tag:

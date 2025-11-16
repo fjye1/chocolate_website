@@ -130,7 +130,8 @@
                                 <div class="card-body">
                                     <h5 class="card-title">{{ product.name }}</h5>
                                     <p><strong>Rating:</strong> {{ product.average_rating() }} ⭐</p>
-                                    <p class="card-text"><strong>₹{{ product.price }}</strong></p>
+                                    {% set box = product.lowest_price_box() %}
+                                    <p class="card-text"><strong>₹{{ box.price }}</strong></p>
                                 </div>
                             </a>
                         </div>
