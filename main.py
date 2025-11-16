@@ -50,7 +50,7 @@ choc_password = os.getenv("CHOC_PASSWORD")
 
 from models import Cart, CartItem, Address, User, Orders, Product, Tag, OrderItem, Comment, BoxSalesHistory, \
     PriceAlert, SiteVisitCount, Tasks, Box, Shipment
-from functions import update_dynamic_prices, MAX_DAILY_CHANGE, ProductService
+from functions import update_dynamic_prices, MAX_DAILY_CHANGE, ProductService, inr_to_gbp
 
 from tasks import simple_task
 
@@ -1220,12 +1220,17 @@ def mark_shipment_arrived(shipment_id):
     shipment_total_cost = sum(float(box.uk_price_at_shipment) for box in shipment.boxes)
     shipment_total_weight = sum(float(box.weight_per_unit) * box.quantity for box in shipment.boxes)
     shipment_total_cost_including_shipping = shipment_total_cost + float(shipment.transit_cost)
-    tariff_cost = float(form.tariff_cost.data or 0.0)
+
+    tariff_cost_rupees = float(form.tariff_cost.data or 0.0)
+    tariff_cost_gbp = inr_to_gbp(tariff_cost_rupees)
+
+
 
     if form.validate_on_submit():
         shipment.has_arrived = True
         shipment.date_arrived = datetime.utcnow()
-        shipment.tariff_cost = tariff_cost
+        shipment.tariff_cost_inr = tariff_cost_rupees
+        shipment.tariff_cost_gbp = tariff_cost_gbp
 
         for box in shipment.boxes:
             # Total box weight
@@ -1238,7 +1243,7 @@ def mark_shipment_arrived(shipment_id):
             box_total_cost_incl_shipping = float(box.uk_price_at_shipment) + shipping_share
 
             # Allocate tariff proportionally
-            tariff_share = (box_total_cost_incl_shipping / shipment_total_cost_including_shipping) * tariff_cost
+            tariff_share = (box_total_cost_incl_shipping / shipment_total_cost_including_shipping) * tariff_cost_gbp
 
             # Final total cost for the box
             total_box_cost = box_total_cost_incl_shipping + tariff_share

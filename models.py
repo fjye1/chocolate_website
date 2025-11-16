@@ -128,7 +128,13 @@ class Product(db.Model):
         self.is_active = any(box.active for box in self.boxes)
 
     def lowest_price_box(self):
-        return min(self.boxes, key=lambda b: b.price) if self.boxes else None
+        # Only consider boxes whose shipment has arrived
+        arrived_boxes = [b for b in self.boxes if b.shipment.has_arrived]
+        if not arrived_boxes:
+            return None
+
+        # Sort first by price, then by expiration date (soonest first)
+        return min(arrived_boxes, key=lambda b: (b.uk_price_at_shipment, b.expiration_date or datetime.max))
 
 # Box model (per-lot / per-box of a product)
 class Box(db.Model):
@@ -171,7 +177,8 @@ class Shipment(db.Model):
 
     # Costs
     transit_cost = db.Column(db.Float, nullable=False, default=0.0)  # Cost when leaving UK
-    tariff_cost = db.Column(db.Float, nullable=False, default=0.0)   # Added when it arrives
+    tariff_cost_rupees = db.Column(db.Float, nullable=False, default=0.0)  # Actual cost in INR
+    tariff_cost_gbp = db.Column(db.Float, nullable=True, default=0.0)     # Converted cost at landing
 
     # Status
     has_arrived = db.Column(db.Boolean, default=False)  # True once shipment has arrived
@@ -189,7 +196,7 @@ class Shipment(db.Model):
 
     @property
     def total_cost(self):
-        return self.total_product_cost + self.transit_cost + self.tariff_cost
+        return self.total_product_cost + self.transit_cost + self.tariff_cost_gbp
 
     @property
     def profitability(self, revenue=None):
