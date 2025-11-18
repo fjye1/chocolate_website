@@ -30,6 +30,17 @@ login_manager = LoginManager()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SECURE'] = True  # Enable this when using HTTPS
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
+@app.after_request
+def set_security_headers(response):
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    return response
 
 # TODO the section of code below is to link you to the render Database it won't work if you don't have a render database set up
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("RENDER_DATABASE_URL2")
@@ -279,7 +290,7 @@ def product_page():
             PriceAlert.product_id.in_(product_ids)
         ).all()
         # Map product_id → alert
-        user_alerts = {alert.box_id: alert for alert in alerts}
+        user_alerts = {alert.product_id: alert for alert in alerts}
 
     all_tags = (
         db.session.query(Tag, func.count(Product.id).label("tag_count"))
@@ -433,11 +444,25 @@ def price_alert():
     target_price = float(request.form['target_price'])
     product_id = request.form['product_id']
     product = Product.query.get(product_id)
+
+    # Find the lowest floor price among all boxes for this product
+    lowest_floor_box = (
+        Box.query
+        .filter_by(product_id=product_id)
+        .order_by(Box.floor_price.asc())
+        .first()
+    )
+
+    if not lowest_floor_box:
+        flash("No boxes found for this product.", "warning")
+        return redirect(url_for('product_detail', product_id=product_id))
+
     expiry_days = 30
     expires_at = datetime.utcnow() + timedelta(days=expiry_days)
 
-    if target_price < product.floor_price:
-        flash(f"Please enter a price above 	₹{product.floor_price:.2f}", "warning")
+    # Use box.floor_price instead of product.floor_price
+    if target_price < lowest_floor_box.floor_price:
+        flash(f"Please enter a price above ₹{lowest_floor_box.floor_price:.2f}", "warning")
         return redirect(url_for('product_detail', product_id=product_id))
 
     alert = PriceAlert(
@@ -449,8 +474,11 @@ def price_alert():
     db.session.add(alert)
     db.session.commit()
 
-    flash(f"We will email you when {product.name} drops to 	₹{target_price:.2f}!\n"
-          f"You can manage your price alerts in your profile", 'success')
+    flash(
+        f"We'll email you when {product.name} drops to ₹{target_price:.2f}! "
+        f"You can manage alerts in your profile.",
+        "success"
+    )
 
     return redirect(url_for('product_detail', product_id=product_id))
 
@@ -799,7 +827,7 @@ def admin_cart():
         total = 0
         for ci in cart.items if cart and cart.items else []:
             items.append({
-                'product': ci.box,
+                'product': ci.box.product,
                 'quantity': ci.quantity,
                 'price': ci.box.price,
                 'cart_item_id': ci.id
