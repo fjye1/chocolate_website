@@ -1,9 +1,12 @@
 import datetime
-from flask_login import UserMixin
-from sqlalchemy.sql import func
-from extension import db
 from datetime import datetime, timezone, timedelta
+
+from flask_login import UserMixin
 from pgvector.sqlalchemy import Vector
+from sqlalchemy.sql import func
+
+from extension import db
+
 
 class Address(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -26,8 +29,8 @@ class CartItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     cart_id = db.Column(db.Integer, db.ForeignKey('cart.id'))
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
-    box_id = db.Column(db.Integer, db.ForeignKey('box.id'))          # <-- new
-    shipment_id = db.Column(db.Integer, db.ForeignKey('shipment.id')) # <-- new
+    box_id = db.Column(db.Integer, db.ForeignKey('box.id'))  # <-- new
+    shipment_id = db.Column(db.Integer, db.ForeignKey('shipment.id'))  # <-- new
     quantity = db.Column(db.Integer, default=1)
     price = db.Column(db.Numeric(10, 2))  # optional, store price at time of add-to-cart
 
@@ -59,6 +62,7 @@ class User(db.Model, UserMixin):
     @property
     def current_address(self):
         return next((a for a in self.addresses if a.current_address), None)
+
 
 product_tags = db.Table(
     'product_tags',
@@ -136,9 +140,11 @@ class Product(db.Model):
         # Sort first by price, then by expiration date (soonest first)
         return min(arrived_boxes, key=lambda b: (b.price))
 
+
 # Box model (per-lot / per-box of a product)
 class Box(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
     product = db.relationship('Product', back_populates='boxes')
 
@@ -146,24 +152,30 @@ class Box(db.Model):
     shipment = db.relationship('Shipment', back_populates='boxes')
 
     quantity = db.Column(db.Integer, nullable=False, default=1)
-    uk_price_at_shipment = db.Column(db.Float, nullable=False)
     weight_per_unit = db.Column(db.Float, nullable=False)
     expiration_date = db.Column(db.Date, nullable=True)
     date_added = db.Column(db.DateTime, default=func.now())
 
-    # Dynamic pricing fields (per box)
+    # Prices in GBP (incoming cost side)
+    landing_price_gbp = db.Column(db.Float, nullable=True)  # previously uk_price_at_shipment
+    floor_price_gbp = db.Column(db.Float, nullable=True)
+
+    # Prices in INR (customer side)
+    price_inr = db.Column(db.Float, nullable=True)  # previously price
+    floor_price_inr = db.Column(db.Float, nullable=True)  # previously floor_price
+
+    # Dynamic pricing
     dynamic_pricing_enabled = db.Column(db.Boolean, default=False)
     pending_price = db.Column(db.Float, nullable=True)
     target_daily_sales = db.Column(db.Float, nullable=True)
     sold_today = db.Column(db.Integer, default=0)
     last_price_update = db.Column(db.DateTime, default=func.now())
-    floor_price = db.Column(db.Float, nullable=True)
-    price = db.Column(db.Float, nullable=True)
+
     is_active = db.Column(db.Boolean, default=True)
 
     @property
     def total_price(self):
-        return self.uk_price_at_shipment
+        return self.landing_price_gbp
 
     @property
     def total_weight(self):
@@ -178,7 +190,7 @@ class Shipment(db.Model):
     # Costs
     transit_cost = db.Column(db.Float, nullable=False, default=0.0)  # Cost when leaving UK
     tariff_cost_rupees = db.Column(db.Float, nullable=False, default=0.0)  # Actual cost in INR
-    tariff_cost_gbp = db.Column(db.Float, nullable=True, default=0.0)     # Converted cost at landing
+    tariff_cost_gbp = db.Column(db.Float, nullable=True, default=0.0)  # Converted cost at landing
 
     # Status
     has_arrived = db.Column(db.Boolean, default=False)  # True once shipment has arrived
@@ -208,9 +220,8 @@ class Shipment(db.Model):
             return revenue - self.total_cost
         return -self.total_cost
 
+
 from datetime import datetime
-
-
 
 
 ############### this section contains data for the dynamic part
@@ -225,8 +236,6 @@ class BoxSalesHistory(db.Model):
     floor_price = db.Column(db.Float, nullable=False)
 
     box = db.relationship('Box', backref=db.backref('sales_history', lazy='select'))
-
-
 
 
 ############### this section contains data for the dynamic part
@@ -257,6 +266,7 @@ class SiteVisitCount(db.Model):
 class Tag(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False, unique=True)
+
 
 class Tasks(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -294,24 +304,25 @@ class Orders(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, onupdate=func.now())
 
+
 class OrderItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     order_id = db.Column(db.String(20), db.ForeignKey('orders.order_id'))
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
-    box_id = db.Column(db.Integer, db.ForeignKey('box.id'))        # new
+    box_id = db.Column(db.Integer, db.ForeignKey('box.id'))  # new
     shipment_id = db.Column(db.Integer, db.ForeignKey('shipment.id'))  # new
     quantity = db.Column(db.Integer, default=1)
     price_at_purchase = db.Column(db.Float)  # box-specific price
 
     # Relationships
     product = db.relationship('Product', backref='order_items')
-    box = db.relationship('Box')              # optional, for easy access
-    shipment = db.relationship('Shipment')    # optional
+    box = db.relationship('Box')  # optional, for easy access
+    shipment = db.relationship('Shipment')  # optional
     order = db.relationship('Orders', backref='order_items')
 
-from sqlalchemy import event
 
 from sqlalchemy import event
+
 
 @event.listens_for(Box, 'before_update')
 def update_box_active(mapper, connection, target):
@@ -326,7 +337,7 @@ def update_box_active(mapper, connection, target):
 @event.listens_for(Box, 'after_insert')
 def sync_product_is_active(mapper, connection, target):
     """Update product.is_active after a box is updated or added."""
-    product = target.product   # <-- this is the Box's related Product
+    product = target.product  # <-- this is the Box's related Product
     if not product:
         return
 

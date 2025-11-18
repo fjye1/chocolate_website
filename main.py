@@ -1,28 +1,26 @@
-from flask import Flask, render_template, redirect, url_for, flash, request, abort, jsonify, make_response, current_app, \
-    session
 import csv
-from collections import defaultdict
-from sqlalchemy.orm import joinedload
-from xhtml2pdf import pisa
 import io
-
-from flask_gravatar import Gravatar
-from flask_bootstrap import Bootstrap5
-from flask_ckeditor import CKEditor
-from forms import RegisterForm, LoginForm, AddAddress, ProductForm, CommentForm, StockForm, TrackingForm, ShipmentSentForm, BoxForm, ShipmentArrivalForm,AddToCartForm
-from flask_login import LoginManager, login_user, current_user, login_required, logout_user, UserMixin, \
-    AnonymousUserMixin
-from werkzeug.security import generate_password_hash, check_password_hash
+import os
+import uuid
+from datetime import datetime, timedelta, timezone, date
 from functools import wraps
 
-from sqlalchemy import cast, Date, literal
-from datetime import datetime, timedelta, timezone, date
 import stripe
-import uuid
-
 from dotenv import load_dotenv
-import os
+from flask import Flask, render_template, redirect, url_for, flash, request, abort, jsonify, make_response, current_app, \
+    session
+from flask_bootstrap import Bootstrap5
+from flask_ckeditor import CKEditor
+from flask_gravatar import Gravatar
+from flask_login import LoginManager, login_user, current_user, login_required, logout_user, AnonymousUserMixin
+from sqlalchemy import literal
+from sqlalchemy.orm import joinedload
+from werkzeug.security import generate_password_hash, check_password_hash
+from xhtml2pdf import pisa
+
 from extension import db
+from forms import RegisterForm, LoginForm, AddAddress, ProductForm, CommentForm, StockForm, TrackingForm, \
+    ShipmentSentForm, BoxForm, ShipmentArrivalForm, AddToCartForm
 
 load_dotenv()
 
@@ -34,6 +32,7 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = True  # Enable this when using HTTPS
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
+
 @app.after_request
 def set_security_headers(response):
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
@@ -41,6 +40,7 @@ def set_security_headers(response):
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
     return response
+
 
 # TODO the section of code below is to link you to the render Database it won't work if you don't have a render database set up
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("RENDER_DATABASE_URL2")
@@ -59,9 +59,8 @@ ckeditor = CKEditor(app)
 choc_email = os.getenv("CHOC_EMAIL")
 choc_password = os.getenv("CHOC_PASSWORD")
 
-from models import Cart, CartItem, Address, User, Orders, Product, Tag, OrderItem, Comment, BoxSalesHistory, \
-    PriceAlert, SiteVisitCount, Tasks, Box, Shipment
-from functions import update_dynamic_prices, MAX_DAILY_CHANGE, ProductService, inr_to_gbp
+from models import Cart, CartItem, Address, User, Orders, Product, Tag, OrderItem, Comment, PriceAlert, SiteVisitCount, Tasks, Box, Shipment
+from functions import update_dynamic_prices, ProductService, inr_to_gbp, gbp_to_inr
 
 from tasks import simple_task
 
@@ -197,6 +196,7 @@ def toggle_dynamic_pricing(product_id):
     db.session.commit()
     return redirect(request.referrer or url_for("admin_products"))
 
+
 @app.route("/new_home")
 def new_home():
     admin = current_user.admin if current_user.is_authenticated else False
@@ -209,6 +209,8 @@ def new_home():
                            admin=admin,
                            comments=random_comments,
                            sorted_products=sorted_products)
+
+
 @app.route("/")
 def home():
     if not session.get("portfolio_banner_shown"):
@@ -244,7 +246,7 @@ def home():
                            admin=admin,
                            comments=random_comments,
                            sorted_products=sorted_products,
-                           boxes = boxes)
+                           boxes=boxes)
 
 
 @app.route('/product')
@@ -254,7 +256,6 @@ def product_page():
     sort = request.args.get('sort')
 
     query = Product.query.filter_by(is_active=True)
-
 
     if product_key:
         tag = Tag.query.filter(Tag.name.ilike(f"%{product_key}%")).first()
@@ -329,7 +330,6 @@ def search():
 def product_detail(product_id):
     product = ProductService.get_product_by_id(product_id)
 
-
     results = (
         db.session.query(Product)
         .filter(Product.is_active == True)  # only active products
@@ -361,13 +361,12 @@ def product_detail(product_id):
             }
         price_groups[box.price]['quantity'] += box.quantity
 
-    #TODO understand the functionality of this line
+    # TODO understand the functionality of this line
     # # Ensure price_groups is ordered by price
     # price_groups = dict(sorted(price_groups.items()))
 
     # Find the cheapest box
     next_box = min(boxes, key=lambda b: b.price, default=None)
-
 
     add_to_cart_form = AddToCartForm(
         product_id=product.id,
@@ -432,7 +431,7 @@ def product_detail(product_id):
                            prices=prices,
                            sales=sales,
                            user_alert=user_alert,
-                           similar_products =similar_products,
+                           similar_products=similar_products,
                            price_groups=price_groups,
                            next_box=next_box
                            )
@@ -784,9 +783,9 @@ def cart():
 
                 items.append({
                     'product': ci.box.product,  # parent product
-                    'box': ci.box,               # include box info
+                    'box': ci.box,  # include box info
                     'quantity': ci.quantity,
-                    'price': float(ci.price),    # box-specific price
+                    'price': float(ci.price),  # box-specific price
                     'cart_item_id': ci.id
                 })
                 total += float(ci.price) * ci.quantity
@@ -866,14 +865,14 @@ def checkout():
             flash(f"Box for '{item.box.name}' no longer exists.", "danger")
             return redirect(url_for('cart'))
         if item.quantity > item.box.quantity:
-            flash(f"Not enough stock for '{item.box.name}' (Box: {item.box.name}). Only {item.box.quantity} left.", "danger")
+            flash(f"Not enough stock for '{item.box.name}' (Box: {item.box.name}). Only {item.box.quantity} left.",
+                  "danger")
             return redirect(url_for('cart'))
 
     # Calculate total based on CartItem price (box-specific)
     total = sum(float(item.price) * item.quantity for item in cart.items)
 
     return render_template('checkout.html', total=total)
-
 
 
 @app.route('/cart-data')
@@ -1184,7 +1183,6 @@ def add_tracking(order_id):
     return render_template('Admin/add_tracking.html', form=form, order=order)
 
 
-
 @app.route("/create-shipment", methods=["GET", "POST"])
 @login_required
 @admin_only
@@ -1203,6 +1201,7 @@ def create_shipment():
 
     return render_template("create_shipment.html", form=form)
 
+
 @app.route("/shipment/<int:shipment_id>/add-box", methods=["GET", "POST"])
 def add_box_to_shipment(shipment_id):
     shipment = Shipment.query.get_or_404(shipment_id)
@@ -1217,7 +1216,7 @@ def add_box_to_shipment(shipment_id):
             shipment_id=shipment.id,
             product_id=form.product_id.data,
             quantity=form.quantity.data,
-            uk_price_at_shipment=form.uk_price_at_shipment.data,
+            landing_price_gbp=form.uk_price_at_shipment.data,
             weight_per_unit=form.weight_per_unit.data,
             expiration_date=form.expiration_date.data,
             dynamic_pricing_enabled=form.dynamic_pricing_enabled.data
@@ -1230,6 +1229,7 @@ def add_box_to_shipment(shipment_id):
 
     boxes = Box.query.filter_by(shipment_id=shipment.id).all()
     return render_template("add_box_to_shipment.html", form=form, shipment=shipment, boxes=boxes)
+
 
 @app.route("/admin/shipments")
 @login_required
@@ -1246,15 +1246,13 @@ def mark_shipment_arrived(shipment_id):
     shipment = Shipment.query.get_or_404(shipment_id)
     form = ShipmentArrivalForm()
 
-    # Convert all to float
-    shipment_total_cost = sum(float(box.uk_price_at_shipment) for box in shipment.boxes)
+    # Totals in GBP
+    shipment_total_cost = sum(float(box.landing_price_gbp) for box in shipment.boxes)
     shipment_total_weight = sum(float(box.weight_per_unit) * box.quantity for box in shipment.boxes)
     shipment_total_cost_including_shipping = shipment_total_cost + float(shipment.transit_cost)
 
     tariff_cost_rupees = float(form.tariff_cost.data or 0.0)
     tariff_cost_gbp = inr_to_gbp(tariff_cost_rupees)
-
-
 
     if form.validate_on_submit():
         shipment.has_arrived = True
@@ -1266,24 +1264,32 @@ def mark_shipment_arrived(shipment_id):
             # Total box weight
             box_weight = float(box.weight_per_unit) * box.quantity
 
-            # Allocate shipping proportionally by box weight
-            shipping_share = (box_weight / shipment_total_weight) * float(shipment.transit_cost)
+            # Allocate shipping proportionally by weight (in GBP)
+            shipping_share_gbp = (box_weight / shipment_total_weight) * float(shipment.transit_cost)
 
-            # Base cost including shipping
-            box_total_cost_incl_shipping = float(box.uk_price_at_shipment) + shipping_share
+            # Base cost incl. shipping (GBP)
+            box_cost_incl_shipping_gbp = float(box.landing_price_gbp) + shipping_share_gbp
 
-            # Allocate tariff proportionally
-            tariff_share = (box_total_cost_incl_shipping / shipment_total_cost_including_shipping) * tariff_cost_gbp
+            # Allocate tariff proportionally (in GBP)
+            tariff_share_gbp = (
+                                       box_cost_incl_shipping_gbp / shipment_total_cost_including_shipping
+                               ) * tariff_cost_gbp
 
-            # Final total cost for the box
-            total_box_cost = box_total_cost_incl_shipping + tariff_share
+            # Final total cost for the box (GBP)
+            total_box_cost_gbp = box_cost_incl_shipping_gbp + tariff_share_gbp
 
-            # Cost per bar
-            cost_per_bar = total_box_cost / box.quantity
+            # Cost per bar (GBP)
+            cost_per_bar_gbp = total_box_cost_gbp / box.quantity
 
-            # Store per-bar cost and selling price
-            box.floor_price = round(cost_per_bar *0.8, 2) # price floor set at 80% of cost
-            box.price = round(cost_per_bar * 1.15, 2)  # 15% margin or 115% of cost
+            # Save GBP floor price for internal reporting
+            box.floor_price_gbp = round(cost_per_bar_gbp, 4)
+
+            # Convert cost-per-bar to INR for selling
+            cost_per_bar_inr = gbp_to_inr(cost_per_bar_gbp)
+
+            # SELLING PRICES (India-facing)
+            box.floor_price_inr = round(cost_per_bar_inr * 0.8, 2)  # 80% of cost
+            box.price_inr = round(cost_per_bar_inr * 1.15, 2)  # 15% margin
 
         db.session.commit()
         flash(f"Shipment #{shipment.id} marked as arrived.", "success")
@@ -1328,7 +1334,6 @@ def create_product():
     return render_template('create_product.html', form=form)
 
 
-
 @app.route('/admin/archive')
 @login_required
 @admin_only
@@ -1353,7 +1358,6 @@ def admin_products():
     for product in products:
         # Gather all active boxes
         active_boxes = [box for box in product.boxes if box.is_active]
-
 
         # Set a default expiration for boxes with none
         for box in active_boxes:

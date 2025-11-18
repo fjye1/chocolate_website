@@ -10,27 +10,69 @@ load_dotenv()
 
 MAX_DAILY_CHANGE = 0.05  # 5%
 
-def get_inr_to_gbp_rate():
+import os
+import requests
+import time
+
+# Simple in-memory cache
+_cached_rates = None
+_cached_at = 0
+CACHE_TTL = 10 * 60  # cache for 10 minutes
+
+
+def get_exchange_rates():
+    global _cached_rates, _cached_at
+
+    now = time.time()
+    if _cached_rates and now - _cached_at < CACHE_TTL:
+        return _cached_rates
+
     exchange_rates_key = os.getenv("EXCHANGE_RATES_API")
     url = f"http://api.exchangeratesapi.io/v1/latest?access_key={exchange_rates_key}"
     resp = requests.get(url)
     data = resp.json()
 
-    # rates are relative to EUR
     gbp_per_eur = data["rates"]["GBP"]
     inr_per_eur = data["rates"]["INR"]
 
-    # INR → GBP
-    rate = gbp_per_eur / inr_per_eur
-    return rate
+    # INR → GBP (1 INR = ? GBP)
+    inr_to_gbp = gbp_per_eur / inr_per_eur
+
+    # GBP → INR (1 GBP = ? INR)
+    gbp_to_inr = inr_per_eur / gbp_per_eur
+
+    # cache results
+    _cached_rates = {"inr_to_gbp": inr_to_gbp, "gbp_to_inr": gbp_to_inr}
+    _cached_at = now
+
+    return _cached_rates
+
 
 def inr_to_gbp(amount_inr):
-    rate = get_inr_to_gbp_rate()
-    return amount_inr * rate
+    rates = get_exchange_rates()
+    return amount_inr * rates["inr_to_gbp"]
 
 
+def gbp_to_inr(amount_gbp):
+    rates = get_exchange_rates()
+    return amount_gbp * rates["gbp_to_inr"]
 
+exchange_rates_key = os.getenv("EXCHANGE_RATES_API")
+url = f"http://api.exchangeratesapi.io/v1/latest?access_key={exchange_rates_key}"
 
+try:
+    resp = requests.get(url, timeout=5)
+    resp.raise_for_status()
+    data = resp.json()
+    gbp_per_eur = data["rates"]["GBP"]
+    inr_per_eur = data["rates"]["INR"]
+    print(f"GBP per EUR: {gbp_per_eur}, INR per EUR: {inr_per_eur}")
+except requests.HTTPError as e:
+    # only print status code, not URL
+    print(f"HTTP error: {resp.status_code}")
+except requests.RequestException as e:
+    print("API request failed:", e.__class__.__name__)
+    
 def update_dynamic_prices():
     today = date.today()
     boxes = Box.query.filter_by(is_active=True, dynamic_pricing_enabled=True).all()
