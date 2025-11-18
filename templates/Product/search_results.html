@@ -14,7 +14,7 @@
             {{ product.name }}
         </a>
         {% set box = product.lowest_price_box() %}
-        ₹{{ "%.2f"|format(box.price) }}
+        ₹{{ "%.2f"|format(box.price_inr) }}
         <p>{{ product.description[:100] }}{% if product.description|length > 100 %}...{% endif %}</p>
     </li>
     {% endfor %}

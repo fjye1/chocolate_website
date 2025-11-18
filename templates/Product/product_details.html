@@ -31,12 +31,12 @@
                 </thead>
                 <tbody>
                 {% for price, data in price_groups.items() %}
-                <tr {% if next_box and price== next_box.price %}class="table-success" {% endif %}>
-                    <td>₹{{ '%.2f' % price }}</td>
+                <tr {% if next_box and price== next_box.price_inr %} class="table-success" {% endif %}>
+                    <td>₹{{ '%.2f' % data.box.price_inr }}</td>
                     <td>{{ data.quantity }}</td>
                     <td>{{ data.expiry.strftime('%Y-%m-%d') if data.expiry else 'N/A' }}</td>
-                    <td>{{ data.box.id}}</td>
-                    <td>{{ data.shipment.id}}</td>
+                    <td>{{ data.box.id }}</td>
+                    <td>{{ data.shipment.id }}</td>
                 </tr>
                 {% endfor %}
                 </tbody>
@@ -61,7 +61,8 @@
                         <img src="{{ url_for('static', filename='assets/dash-circle.svg') }}" alt="minus" width="36">
                     </button>
 
-                    {{ add_to_cart_form.quantity(id="quantity-input", value=1, style="border: none; width: 40px; text-align:
+                    {{ add_to_cart_form.quantity(id="quantity-input", value=1, style="border: none; width: 40px;
+                    text-align:
                     center;") }}
 
                     <button type="button" class="qty-btn plus" style="border: none; background: transparent;">
@@ -158,7 +159,7 @@
                         <h5 class="card-title">{{ product.name }}</h5>
                         <p><strong>Rating:</strong> {{ product.average_rating() }} ⭐</p>
                         {% set box = product.lowest_price_box() %}
-                        <p class="card-text"><strong>₹{{ box.price }}</strong></p>
+                        <p class="card-text"><strong>₹{{ box.price_inr }}</strong></p>
                     </div>
                 </a>
             </div>

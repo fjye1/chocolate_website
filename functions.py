@@ -57,22 +57,8 @@ def gbp_to_inr(amount_gbp):
     rates = get_exchange_rates()
     return amount_gbp * rates["gbp_to_inr"]
 
-exchange_rates_key = os.getenv("EXCHANGE_RATES_API")
-url = f"http://api.exchangeratesapi.io/v1/latest?access_key={exchange_rates_key}"
 
-try:
-    resp = requests.get(url, timeout=5)
-    resp.raise_for_status()
-    data = resp.json()
-    gbp_per_eur = data["rates"]["GBP"]
-    inr_per_eur = data["rates"]["INR"]
-    print(f"GBP per EUR: {gbp_per_eur}, INR per EUR: {inr_per_eur}")
-except requests.HTTPError as e:
-    # only print status code, not URL
-    print(f"HTTP error: {resp.status_code}")
-except requests.RequestException as e:
-    print("API request failed:", e.__class__.__name__)
-    
+
 def update_dynamic_prices():
     today = date.today()
     boxes = Box.query.filter_by(is_active=True, dynamic_pricing_enabled=True).all()

@@ -57,7 +57,7 @@
                                 <h5 class="card-title">{{ product.name }}</h5>
                                 <p><strong>Rating:</strong> {{ product.average_rating() }} ⭐</p>
                                 {% set box = product.lowest_price_box() %}
-                                <p class="card-text"><strong>₹{{ box.price }}</strong></p>
+                                <p class="card-text"><strong>₹{{ box.price_inr }}</strong></p>
                             </div>
                         </a>
                     </div>
@@ -131,7 +131,7 @@
                                     <h5 class="card-title">{{ product.name }}</h5>
                                     <p><strong>Rating:</strong> {{ product.average_rating() }} ⭐</p>
                                     {% set box = product.lowest_price_box() %}
-                                    <p class="card-text"><strong>₹{{ box.price }}</strong></p>
+                                    <p class="card-text"><strong>₹{{ box.price_inr }}</strong></p>
                                 </div>
                             </a>
                         </div>

@@ -346,27 +346,27 @@ def product_detail(product_id):
     # Only boxes that have arrived and still have stock
     boxes = Box.query.join(Box.shipment) \
         .filter(Box.product_id == product.id, Shipment.has_arrived == True, Box.quantity > 0) \
-        .order_by(Box.price.desc()) \
+        .order_by(Box.price_inr.desc()) \
         .all()
 
     # Group by price and track total quantity + first expiry seen for that price
     price_groups = {}
     for box in boxes:
-        if box.price not in price_groups:
-            price_groups[box.price] = {
+        if box.price_inr not in price_groups:
+            price_groups[box.price_inr] = {
                 'quantity': 0,
                 'expiry': box.expiration_date,
                 'box': box,  # add box reference
                 'shipment': box.shipment  # add shipment reference
             }
-        price_groups[box.price]['quantity'] += box.quantity
+        price_groups[box.price_inr]['quantity'] += box.quantity
 
     # TODO understand the functionality of this line
     # # Ensure price_groups is ordered by price
     # price_groups = dict(sorted(price_groups.items()))
 
     # Find the cheapest box
-    next_box = min(boxes, key=lambda b: b.price, default=None)
+    next_box = min(boxes, key=lambda b: b.price_inr, default=None)
 
     add_to_cart_form = AddToCartForm(
         product_id=product.id,
@@ -569,7 +569,7 @@ def login():
                         product_id=box.product_id,
                         shipment_id=box.shipment_id,
                         quantity=b['quantity'],
-                        price=box.price
+                        price=box.price_inr
                     )
                     db.session.add(new_item)
 
@@ -717,7 +717,7 @@ def add_to_cart():
                 product_id=box.product_id,
                 shipment_id=box.shipment_id,
                 quantity=quantity,
-                price=box.price
+                price=box.price_inr
             )
             db.session.add(cart_item)
 
@@ -743,7 +743,7 @@ def add_to_cart():
                 'box_id': box_id,
                 'shipment_id': shipment_id,
                 'quantity': quantity,
-                'price': float(box.price)
+                'price': float(box.price_inr)
             })
 
         session['basket'] = basket
@@ -828,10 +828,10 @@ def admin_cart():
             items.append({
                 'product': ci.box.product,
                 'quantity': ci.quantity,
-                'price': ci.box.price,
+                'price': ci.box.price_inr,
                 'cart_item_id': ci.id
             })
-            total += ci.box.price * ci.quantity
+            total += ci.box.price_inr* ci.quantity
     else:
         basket = session.get('basket', [])
         items = []
