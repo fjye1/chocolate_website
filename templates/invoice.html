@@ -42,7 +42,7 @@
     </tr>
     </thead>
     <tbody>
-    {% for item in order.items %}
+    {% for item in order.order_items %}
     <tr>
         <td>
             <img src="{{ url_for('static', filename=item.product.image) }}"
