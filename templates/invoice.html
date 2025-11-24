@@ -1,64 +1,74 @@
-<link
-    rel="icon"
-    type="image/svg+xml"
-    href="{{ url_for('static', filename='assets/Choc_flav.svg') }}"
-/>
-<div class="w-100  text-white">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-auto">
-                <img src="{{ url_for('static', filename='images/Logo_small.png') }}"
-                     alt="Site Logo"
-                     width="150" height="150" class="rounded">
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='assets/Choc_flav.svg') }}" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<div class="container my-4">
+    <!-- Header -->
+    <div class="row align-items-center mb-3">
+        <div class="col-auto">
+            <img src="{{ url_for('static', filename='images/Logo_small.png') }}"
+                 alt="Site Logo"
+                 width="150" height="150" class="rounded">
+        </div>
+        <div class="col">
+            <h2 class="mb-2">Invoice</h2>
+            <p class="mb-1"><strong>Order ID:</strong> {{ order.order_id }}</p>
+            <p class="mb-1"><strong>Date:</strong> {{ order.created_at.strftime('%b %d, %Y') }}</p>
+            <p class="mb-0"><strong>Status:</strong> <span class="text-capitalize">{{ order.status }}</span></p>
+        </div>
+    </div>
 
-            </div>
-            <div class="col">
-                <h2 class="mb-2">Invoice</h2>
-                <p class="mb-1"><strong>Order ID:</strong> {{ order.order_id }}</p>
-                <p class="mb-1"><strong>Date:</strong> {{ order.created_at.strftime('%b %d, %Y') }}</p>
-                <p class="mb-0"><strong>Status:</strong> <span class="text-capitalize">{{ order.status }}</span></p>
-            </div>
+    <hr>
+
+    <!-- Shipping Address -->
+    <h4>Shipping Address</h4>
+    <p class="mb-4">
+        {{ order.shipping_address.street }}<br>
+        {{ order.shipping_address.city }}, {{ order.shipping_address.postcode }}
+    </p>
+
+    <hr>
+
+    <!-- Items Table -->
+    <h4>Items</h4>
+    <div class="card shadow-sm mb-4">
+        <div class="card-body p-3">
+            <table class="table table-bordered align-middle mb-0" style="border-color:#dee2e6;">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:120px; text-align:center;">Image</th>
+                        <th>Product</th>
+                        <th style="text-align:center;">Box ID</th>
+                        <th style="text-align:center;">Shipment ID</th>
+                        <th style="text-align:center;">Qty</th>
+                        <th style="text-align:right;">Price</th>
+                        <th style="text-align:right;">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in order.order_items %}
+                    <tr>
+                        <td class="text-center">
+                            <img src="{{ url_for('static', filename=item.product.image) }}"
+                                 alt="{{ item.product.name }}"
+                                 class="img-thumbnail" style="max-width:100px; height:100px; object-fit:cover;">
+                        </td>
+                        <td>{{ item.product.name }}</td>
+                        <td class="text-center">{{ item.box_id }}</td>
+                        <td class="text-center">{{ item.shipment_id }}</td>
+                        <td class="text-center">{{ item.quantity }}</td>
+                        <td class="text-end">₹{{ '%.2f' % item.price_at_purchase }}</td>
+                        <td class="text-end">₹{{ '%.2f' % (item.quantity * item.price_at_purchase) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Totals -->
+    <div class="d-flex justify-content-end">
+        <div class="p-3 border rounded shadow-sm bg-light">
+            <h5 class="mb-0">Total: <strong>₹{{ '%.2f' % order.total_amount }}</strong></h5>
         </div>
     </div>
 </div>
-<hr>
 
-<h4>Shipping Address</h4>
-<p>
-    {{ order.shipping_address.street }}<br>
-    {{ order.shipping_address.city }}, {{ order.shipping_address.postcode }}
-</p>
-<hr>
-
-<h4>Items</h4>
-<table class="table table-striped align-middle">
-    <thead class="table-light">
-    <tr>
-        <th style="width: 120px;"></th>
-        <th>Product</th>
-        <th>Qty</th>
-        <th>Price</th>
-        <th>Total</th>
-    </tr>
-    </thead>
-    <tbody>
-    {% for item in order.order_items %}
-    <tr>
-        <td>
-            <img src="{{ url_for('static', filename=item.product.image) }}"
-                 alt="{{ item.product.name }}"
-                 class="img-thumbnail" style="max-width: 100px; height: 100px; object-fit: cover;">
-        </td>
-        <td>{{ item.product.name }}</td>
-        <td>{{ item.quantity }}</td>
-        <td>₹{{ '%.2f' % item.price_at_purchase }}</td>
-        <td>₹{{ '%.2f' % (item.quantity * item.price_at_purchase) }}</td>
-    </tr>
-    {% endfor %}
-    </tbody>
-</table>
-
-<div class="d-flex justify-content-end mt-4">
-    <h5>Total: <strong>₹{{ '%.2f' % order.total_amount }}</strong></h5>
-</div>
-</div>
