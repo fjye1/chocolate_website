@@ -83,11 +83,20 @@
                     {% endif %}
                 </div>
 
-                <!-- Cart always visible -->
-                <a href="{{ url_for('cart') }}" class="nav-link px-2 link-body-emphasis">
-                    <img src="{{ url_for('static', filename='images/cart.svg') }}" alt="Cart" width="50"
-                         class="product-img">
+                <a href="{{ url_for('cart') }}" class="nav-link px-2 position-relative">
+                    <img src="{{ url_for('static', filename='images/cart.svg') }}"
+                         alt="Cart" width="50"
+                         class="product-img"
+                         style="filter: {% if cart_items|length > 0 %}invert(34%) sepia(77%) saturate(545%) hue-rotate(97deg) brightness(95%) contrast(92%){% else %}none{% endif %};">
+
+                    {% if cart_items|length > 0 %}
+                    <span class="position-absolute badge rounded-pill bg-danger"
+      style="top: 25px; right: 10px; font-size: 0.7rem; min-width: 20px;">
+    {{ cart_items|length }}
+</span>
+                    {% endif %}
                 </a>
+
             </div>
         </div>
     </div>

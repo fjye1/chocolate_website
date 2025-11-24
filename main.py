@@ -64,6 +64,21 @@ from functions import update_dynamic_prices, ProductService, inr_to_gbp, gbp_to_
 
 from tasks import simple_task
 
+@app.context_processor
+def inject_cart():
+    # Default empty
+    cart_items = []
+
+    # Logged in user: pull from DB
+    if current_user.is_authenticated:
+        cart = get_user_cart(current_user.id)
+        if cart:
+            cart_items = [{'product_id': item.product_id, 'quantity': item.quantity} for item in cart.items]
+    else:
+        # Guest user: use session basket
+        cart_items = session.get('basket', [])
+
+    return dict(cart_items=cart_items)
 
 @app.route("/run_task", methods=["GET"])
 def run_task():
