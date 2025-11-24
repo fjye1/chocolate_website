@@ -463,7 +463,7 @@ def price_alert():
     lowest_floor_box = (
         Box.query
         .filter_by(product_id=product_id)
-        .order_by(Box.floor_price.asc())
+        .order_by(Box.floor_price_inr.asc())
         .first()
     )
 
@@ -474,9 +474,9 @@ def price_alert():
     expiry_days = 30
     expires_at = datetime.utcnow() + timedelta(days=expiry_days)
 
-    # Use box.floor_price instead of product.floor_price
-    if target_price < lowest_floor_box.floor_price:
-        flash(f"Please enter a price above ₹{lowest_floor_box.floor_price:.2f}", "warning")
+    # Use box.floor_price_inr instead of product.floor_price_inr
+    if target_price < lowest_floor_box.floor_price_inr:
+        flash(f"Please enter a price above ₹{lowest_floor_box.floor_price_inr:.2f}", "warning")
         return redirect(url_for('product_detail', product_id=product_id))
 
     alert = PriceAlert(
