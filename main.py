@@ -1208,16 +1208,22 @@ def add_box_to_shipment(shipment_id):
     form = BoxForm()
     products = Product.query.all()
 
-    # ✅ choices must be set before validate_on_submit()
+    # Set choices for the dropdown
     form.product_id.choices = [(p.id, p.name) for p in Product.query.all()]
 
     if form.validate_on_submit():
+        # Get the actual Product object
+        product = Product.query.get(form.product_id.data)
+        if not product:
+            flash("Selected product does not exist.", "danger")
+            return redirect(url_for("add_box_to_shipment", shipment_id=shipment.id))
+
         box = Box(
             shipment_id=shipment.id,
-            product_id=form.product_id.data,
+            product_id=product.id,
             quantity=form.quantity.data,
             landing_price_gbp=form.uk_price_at_shipment.data,
-            weight_per_unit=form.weight_per_unit.data,
+            weight_per_unit=product.weight_per_unit,  # pulled from the Product
             expiration_date=form.expiration_date.data,
             dynamic_pricing_enabled=form.dynamic_pricing_enabled.data
         )

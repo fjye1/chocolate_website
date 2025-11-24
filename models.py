@@ -132,13 +132,16 @@ class Product(db.Model):
         self.is_active = any(box.active for box in self.boxes)
 
     def lowest_price_box(self):
-        # Only consider boxes whose shipment has arrived
-        arrived_boxes = [b for b in self.boxes if b.shipment.has_arrived]
-        if not arrived_boxes:
+        # Only consider boxes that are active AND whose shipment has arrived
+        arrived_and_active = [
+            b for b in self.boxes
+            if b.shipment.has_arrived and b.is_active
+        ]
+
+        if not arrived_and_active:
             return None
 
-        # Sort first by price, then by expiration date (soonest first)
-        return min(arrived_boxes, key=lambda b: (b.price_inr))
+        return min(arrived_and_active, key=lambda b: b.price_inr)
 
 
 # Box model (per-lot / per-box of a product)
