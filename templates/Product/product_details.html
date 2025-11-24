@@ -4,20 +4,20 @@
 {% block content %}
 <div class="container mt-4">
     <div class="row">
+
         <!-- Product Image -->
         <div class="col-md-6 product-img">
             <img src="{{ url_for('static', filename=product.image) }}" class="img-fluid" alt="{{ product.name }}">
         </div>
 
         <!-- Product Info -->
+
         <div class="col-md-6">
             <h2>{{ product.name }}</h2>
             <p>{{ product.description }}</p>
-            <p><strong>Weight per bar:</strong> {{ product.weight_per_unit }}g</p>
-            <p><strong>Rating:</strong> {{ product.average_rating() }} ⭐</p>
 
-            <!-- Stock & Price Table -->
-            {% if price_groups %}
+            <!-- Admin View -->
+            {% if current_user.admin and price_groups %}
             <h4>Available Bars</h4>
             <table class="table">
                 <thead>
@@ -41,14 +41,72 @@
                 {% endfor %}
                 </tbody>
             </table>
-            {% if next_box %}
-            <p><strong>Next expiring stock:</strong> {{ next_box.expiration_date.strftime("%Y-%m-%d") }}</p>
+
+
             {% endif %}
+            <!-- End Admin View -->
+
+
+            <!-- User View -->
+            {% if next_box %}
+
+            <div class="card mt-4 shadow-sm">
+                <div class="card-body">
+
+
+                    <h4 class="card-title mb-3">Current Price & Stock</h4>
+
+                    <table class="table table-sm mb-4">
+                        <tbody>
+                        <tr>
+                            <th scope="row">Price</th>
+                            <td>₹{{ next_box.price_inr }}</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Stock at this price</th>
+                            <td>{{ next_box.quantity }}</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Product ID</th>
+                            <td>{{ next_box.product_id }}</td>
+                        </tr>
+                        {% if price_groups %}
+                        <tr>
+                            <th scope="row">Total stock available</th>
+                            <td>{{ price_groups.values() | sum(attribute='quantity') }} units</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <th scope="row">Expiry Date</th>
+                            <td>{{ next_box.expiration_date.strftime("%Y-%m-%d") }}</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Box ID</th>
+                            <td>{{ next_box.id }}</td>
+                        </tr>
+
+                        <tr>
+                            <th scope="row">Weight per bar</th>
+                            <td>{{ product.weight_per_unit }}</td>
+                        </tr>
+
+                        <tr>
+                            <th scope="row">Rating</th>
+                            <td>{{ product.average_rating() }} ⭐</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    
+
+                </div>
+            </div>
+
             {% else %}
             <p>Out of stock</p>
             {% endif %}
+            <!-- End User View -->
 
-            <p>Box: {{ next_box.id }} (expires: {{ next_box.expiration_date.strftime('%Y-%m-%d') }})</p>
+
             <!-- Add to Cart Form -->
             <form method="POST" action="{{ url_for('add_to_cart') }}">
                 {{ add_to_cart_form.hidden_tag() }}
@@ -56,6 +114,9 @@
                 {{ add_to_cart_form.box_id(value=next_box.id) }}
                 {{ add_to_cart_form.shipment_id(value=next_box.shipment_id if next_box else '') }}
 
+                <div class="alert alert-success text-center" role="alert" style="font-size:1.4rem;">
+                    <strong>₹{{ next_box.price_inr }}</strong>
+                </div>
                 <div class="d-flex align-items-center gap-2">
                     <button type="button" class="qty-btn minus" style="border: none; background: transparent;">
                         <img src="{{ url_for('static', filename='assets/dash-circle.svg') }}" alt="minus" width="36">
@@ -70,6 +131,7 @@
                     </button>
 
                     {{ add_to_cart_form.submit(class="btn btn-primary rounded-pill px-3", style="margin-left: 30px;") }}
+
                 </div>
 
                 <!-- Interactive Price Chart -->
