@@ -255,13 +255,23 @@ def home():
     products = Product.query.filter_by(is_active=True).all()
     sorted_products = sorted(products, key=lambda p: p.average_rating(), reverse=True)
     boxes = Box.query.join(Product).filter(Product.is_active == True).all()
+    product_ids = [p.id for p in products]
+    user_alerts = {}
+    if current_user.is_authenticated:
+        alerts = PriceAlert.query.filter(
+            PriceAlert.user_id == current_user.id,
+            PriceAlert.product_id.in_(product_ids)
+        ).all()
+        # Map product_id → alert
+        user_alerts = {alert.product_id: alert for alert in alerts}
 
     return render_template("home_page.html",
                            products=products,
                            admin=admin,
                            comments=random_comments,
                            sorted_products=sorted_products,
-                           boxes=boxes)
+                           boxes=boxes,
+                           user_alerts= user_alerts)
 
 
 @app.route('/product')
@@ -1393,7 +1403,7 @@ def admin_products():
 
         # Calculate totals
         total_revenue = sum(s.sold_quantity * s.sold_price for s in recent_sales)
-        total_cost = sum(s.sold_quantity * (s.floor_price or 0) for s in recent_sales)
+        total_cost = sum(s.sold_quantity * (s.floor_price_inr or 0) for s in recent_sales)
 
         product.profit = total_revenue - total_cost
         product.profit_percent = (product.profit / total_revenue * 100) if total_revenue > 0 else 0
@@ -1449,7 +1459,7 @@ def admin_edit_product(product_id):
 
     return render_template('Admin/admin_products_edit.html', form=form, product=product)
 
-
+##TODO determine if this is still used i dont think it is 24/11/2025
 @app.route('/admin/products/add/<int:product_id>', methods=['GET', 'POST'])
 def admin_add_product(product_id):
     product = db.get_or_404(Product, product_id)
