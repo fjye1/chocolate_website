@@ -282,6 +282,7 @@ def product_page():
 
     query = Product.query.filter_by(is_active=True)
 
+
     if product_key:
         tag = Tag.query.filter(Tag.name.ilike(f"%{product_key}%")).first()
         if tag:
@@ -295,18 +296,19 @@ def product_page():
             .filter(Tag.name.in_(selected_tags))
             .distinct()
         )
+    products = query.all()  # fetch filtered products
 
-    # Apply sorting
     if sort == 'price_asc':
-        query = query.order_by(Product.price.asc())
+        # sort in Python by the product's lowest price box
+        products.sort(key=lambda p: p.lowest_price_box().price_inr if p.lowest_price_box() else float('inf'))
     elif sort == 'price_desc':
-        query = query.order_by(Product.price.desc())
-
-    products = query.all()
-    if sort == 'rating_desc':
-        products.sort(key=lambda p: p.average_rating(), reverse=True)
+        products.sort(key=lambda p: p.lowest_price_box().price_inr if p.lowest_price_box() else float('inf'),
+                      reverse=True)
     elif sort == 'rating_asc':
         products.sort(key=lambda p: p.average_rating())
+    elif sort == 'rating_desc':
+        products.sort(key=lambda p: p.average_rating(), reverse=True)
+    # if sort is None or invalid, leave products unsorted
 
     product_ids = [p.id for p in products]
     user_alerts = {}
