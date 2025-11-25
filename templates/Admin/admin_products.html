@@ -3,7 +3,6 @@
 
 {% block admin_block %}
 
-<h2>All Products</h2>
 
 <table class="table table-striped">
     <thead>
@@ -30,46 +29,23 @@
     </thead>
     <tbody>
     {% for product in products %}
-    {% set active_boxes = product.boxes | selectattr('is_active') | list %}
-    {% set avg_price = (active_boxes | map(attribute='price') | select | list | sum) / (active_boxes|length) if
-    active_boxes else 0 %}
-    {% set total_quantity = active_boxes | map(attribute='quantity') | sum %}
-    {% set earliest_expiry_box = active_boxes | sort(attribute='expiration_date') | first %}
-    {% set days_left = (earliest_expiry_box.expiration_date - date.today()).days if earliest_expiry_box else 0 %}
-
-    {% set ns = namespace(total_revenue=0, total_cost=0) %}
-    {% for box in active_boxes %}
-    {% for sale in box.sales_history %}
-    {% if sale.date >= (date.today() - timedelta(days=28)) %}
-    {% set revenue = sale.sold_quantity * sale.sold_price %}
-    {% set cost = sale.sold_quantity * (sale.floor_price or 0) %}
-    {% set ns.total_revenue = ns.total_revenue + revenue %}
-    {% set ns.total_cost = ns.total_cost + cost %}
-    {% endif %}
-    {% endfor %}
-    {% endfor %}
-    {% set profit = ns.total_revenue - ns.total_cost %}
-    {% set profit_percent = (profit / ns.total_revenue * 100) if ns.total_revenue > 0 else 0 %}
-
     <tr>
         <td><img src="{{ url_for('static', filename=product.image) }}" width="100"></td>
         <td>{{ product.name }}</td>
-        <td>₹{{ "%.2f"|format(avg_price) }}</td>
-        <td>{{ "Yes" if active_boxes else "No" }}</td>
-        <td>{{ total_quantity }}</td>
-        <td>{{ earliest_expiry_box.expiration_date.strftime('%d %b %Y') }}</td>
-        <td>{{ earliest_expiry_box.days_left }}</td>
-        <td>{{ product.tags | map(attribute='name') | join(', ') }}</td>
+        <td>₹{{ "%.2f"|format(product.avg_price) }}</td>
+        <td>{{ "Yes" if product.has_active_boxes else "No" }}</td>
+        <td>{{ product.total_quantity }}</td>
+        <td>{{ product.earliest_expiry.strftime('%d %b %Y') if product.earliest_expiry else "-" }}</td>
+        <td>{{ product.days_left if product.earliest_expiry else "-" }}</td>
+        <td>{{ product.tag_names }}</td>
         <td>
-            <!-- Actions remain the same -->
+            <!-- Actions -->
         </td>
-        <td>
-            {{ "On" if active_boxes | selectattr('dynamic_pricing_enabled') | list else "Off" }}
-        </td>
-        <td>₹{{'%.2f' % product.avg_alert_price | round(2)}}</td>
-        <td>₹{{ ns.total_revenue | round(2) }}</td>
-        <td>₹{{ profit | round(2) }}</td>
-        <td>{{ profit_percent | round(1) }}%</td>
+        <td>{{ "On" if product.dynamic_pricing_enabled else "Off" }}</td>
+        <td>₹{{ "%.2f"|format(product.avg_alert_price)  }}</td>
+        <td>₹{{ "%.2f"|format(product.total_revenue)  }}</td>
+        <td>₹{{ "%.2f"|format(product.profit)  }}</td>
+        <td>{{ "%.2f"|format(product.profit_percent)  }}%</td>
     </tr>
     {% endfor %}
     </tbody>

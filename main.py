@@ -1389,8 +1389,17 @@ def admin_products():
     products = Product.query.options(joinedload(Product.boxes).joinedload(Box.sales_history)).all()
 
     for product in products:
-        # Gather all active boxes
-        active_boxes = [box for box in product.boxes if box.is_active]
+        active_boxes = [b for b in product.boxes if b.is_active]
+        product.has_active_boxes = bool(active_boxes)
+        product.total_quantity = sum(b.quantity for b in active_boxes)
+        product.avg_price = (sum(b.price_inr for b in active_boxes) / len(active_boxes)) if active_boxes else 0
+        earliest_box = min(active_boxes, key=lambda b: b.expiration_date, default=None)
+        product.earliest_expiry = earliest_box.expiration_date if earliest_box else None
+        product.days_left = (earliest_box.expiration_date - date.today()).days if earliest_box else None
+        product.dynamic_pricing_enabled = any(b.dynamic_pricing_enabled for b in active_boxes)
+        product.tag_names = ', '.join([t.name for t in product.tags])
+
+
 
         # Set a default expiration for boxes with none
         for box in active_boxes:
@@ -1404,11 +1413,11 @@ def admin_products():
             recent_sales.extend([s for s in box.sales_history if s.date >= start_date])
 
         # Calculate totals
-        total_revenue = sum(s.sold_quantity * s.sold_price for s in recent_sales)
-        total_cost = sum(s.sold_quantity * (s.floor_price_inr or 0) for s in recent_sales)
+        product.total_revenue = sum(s.sold_quantity * s.sold_price for s in recent_sales)
+        product.total_cost = sum(s.sold_quantity * (s.floor_price or 0) for s in recent_sales)
 
-        product.profit = total_revenue - total_cost
-        product.profit_percent = (product.profit / total_revenue * 100) if total_revenue > 0 else 0
+        product.profit = product.total_revenue - product.total_cost
+        product.profit_percent = (product.profit / product.total_revenue * 100) if product.total_revenue > 0 else 0
 
         # Filter recent sales per product for display
         product.recent_sales = sorted(recent_sales, key=lambda s: s.date)
