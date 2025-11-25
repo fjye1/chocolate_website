@@ -141,7 +141,7 @@ class Product(db.Model):
         if not arrived_and_active:
             return None
 
-        return min(arrived_and_active, key=lambda b: b.price_inr)
+        return min(arrived_and_active, key=lambda b: b.price_inr_unit)
 
 
 # Box model (per-lot / per-box of a product)
@@ -160,12 +160,16 @@ class Box(db.Model):
     date_added = db.Column(db.DateTime, default=func.now())
 
     # Prices in GBP (incoming cost side)
-    landing_price_gbp = db.Column(db.Float, nullable=True)  # previously uk_price_at_shipment
-    floor_price_gbp = db.Column(db.Float, nullable=True)
+    price_gbp_unit = db.Column(db.Float, nullable=True) # previously na
+    floor_price_gbp_unit = db.Column(db.Float, nullable=True) # previously floor_price_gbp
+    landing_price_gbp_box = db.Column(db.Float, nullable=True)  # previously uk_price_at_shipment, landing_price_gbp
+
+
 
     # Prices in INR (customer side)
-    price_inr = db.Column(db.Float, nullable=True)  # previously price
-    floor_price_inr = db.Column(db.Float, nullable=True)  # previously floor_price
+    price_inr_unit = db.Column(db.Float, nullable=True)  # previously price, price_inr
+    floor_price_inr_unit = db.Column(db.Float, nullable=True)  # previously floor_price, floor_price_inr_unit
+    landing_price_inr_box = db.Column(db.Float, nullable=True)  # previously na
 
     # Dynamic pricing
     dynamic_pricing_enabled = db.Column(db.Boolean, default=False)
@@ -177,8 +181,12 @@ class Box(db.Model):
     is_active = db.Column(db.Boolean, default=True)
 
     @property
-    def total_price(self):
-        return self.landing_price_gbp
+    def total_price_gbp(self):
+        return self.landing_price_gbp_box
+
+    @property
+    def total_price_inr(self):
+        return self.landing_price_inr_box
 
     @property
     def total_weight(self):
@@ -203,7 +211,7 @@ class Shipment(db.Model):
 
     @property
     def total_product_cost(self):
-        return sum(box.total_price for box in self.boxes)
+        return sum(box.total_price_gbp for box in self.boxes)
 
     @property
     def total_weight(self):
@@ -214,14 +222,22 @@ class Shipment(db.Model):
         return self.total_product_cost + self.transit_cost + self.tariff_cost_gbp
 
     @property
-    def profitability(self, revenue=None):
+    def profitability(self):
         """
-        If revenue is provided, calculates profit = revenue - total_cost.
-        Otherwise, just returns negative total cost as placeholder.
+        Calculate the total profit for this shipment based on boxes' sales history.
+        Profit = sum(sold_quantity * sold_price) - sum(sold_quantity * floor_price_inr_unit)
         """
-        if revenue is not None:
-            return revenue - self.total_cost
-        return -self.total_cost
+        total_revenue = 0
+
+
+        for box in self.boxes:
+            for sale in box.sales_history:
+                # Only consider sales from this shipment
+                if sale.box.shipment_id == self.id:
+                    total_revenue += sale.sold_quantity * sale.sold_price
+
+
+        return total_revenue - self.total_cost
 
 
 from datetime import datetime

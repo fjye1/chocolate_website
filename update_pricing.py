@@ -34,11 +34,11 @@ def update_dynamic_prices():
         price_multiplier = 1 + (demand_ratio - 1) * MAX_DAILY_CHANGE
 
         # Step 1: Calculate the new price
-        new_price = box.price_inr * price_multiplier
+        new_price = box.price_inr_unit * price_multiplier
 
         # Step 2: Apply floor
-        if new_price < box.floor_price_inr:
-            new_price = box.floor_price_inr
+        if new_price < box.floor_price_inr_unit:
+            new_price = box.floor_price_inr_unit
 
         # Step 3: Set pending price and sales target
         box.pending_price = round(new_price, 2)
@@ -49,15 +49,15 @@ def update_dynamic_prices():
             box_id=box.id,
             date=date.today(),
             sold_quantity=box.sold_today,
-            sold_price=box.price_inr,  # This is the price used during the day
+            sold_price=box.price_inr_unit,  # This is the price used during the day
             target_daily_sales=box.target_daily_sales,
             demand=box.sold_today/box.target_daily_sales,
-            floor_price=box.floor_price_inr
+            floor_price=box.floor_price_inr_unit
         )
         db.session.add(sales_history)
 
         # Step 4: Roll pending price into active price (e.g. at end of day)
-        box.price_inr = box.pending_price
+        box.price_inr_unit = box.pending_price
         box.last_price_update = datetime.utcnow()
 
         # Optional: reset pending price until next calculation

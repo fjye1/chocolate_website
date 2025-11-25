@@ -300,9 +300,9 @@ def product_page():
 
     if sort == 'price_asc':
         # sort in Python by the product's lowest price box
-        products.sort(key=lambda p: p.lowest_price_box().price_inr if p.lowest_price_box() else float('inf'))
+        products.sort(key=lambda p: p.lowest_price_box().price_inr_unit if p.lowest_price_box() else float('inf'))
     elif sort == 'price_desc':
-        products.sort(key=lambda p: p.lowest_price_box().price_inr if p.lowest_price_box() else float('inf'),
+        products.sort(key=lambda p: p.lowest_price_box().price_inr_unit if p.lowest_price_box() else float('inf'),
                       reverse=True)
     elif sort == 'rating_asc':
         products.sort(key=lambda p: p.average_rating())
@@ -373,27 +373,27 @@ def product_detail(product_id):
     # Only boxes that have arrived and still have stock
     boxes = Box.query.join(Box.shipment) \
         .filter(Box.product_id == product.id, Shipment.has_arrived == True, Box.quantity > 0) \
-        .order_by(Box.price_inr.desc()) \
+        .order_by(Box.price_inr_unit.desc()) \
         .all()
 
     # Group by price and track total quantity + first expiry seen for that price
     price_groups = {}
     for box in boxes:
-        if box.price_inr not in price_groups:
-            price_groups[box.price_inr] = {
+        if box.price_inr_unit not in price_groups:
+            price_groups[box.price_inr_unit] = {
                 'quantity': 0,
                 'expiry': box.expiration_date,
                 'box': box,  # add box reference
                 'shipment': box.shipment  # add shipment reference
             }
-        price_groups[box.price_inr]['quantity'] += box.quantity
+        price_groups[box.price_inr_unit]['quantity'] += box.quantity
 
     # TODO understand the functionality of this line
     # # Ensure price_groups is ordered by price
     # price_groups = dict(sorted(price_groups.items()))
 
     # Find the cheapest box
-    next_box = min(boxes, key=lambda b: b.price_inr, default=None)
+    next_box = min(boxes, key=lambda b: b.price_inr_unit, default=None)
 
     add_to_cart_form = AddToCartForm(
         product_id=product.id,
@@ -475,7 +475,7 @@ def price_alert():
     lowest_floor_box = (
         Box.query
         .filter_by(product_id=product_id)
-        .order_by(Box.floor_price_inr.asc())
+        .order_by(Box.floor_price_inr_unit.asc())
         .first()
     )
 
@@ -486,9 +486,9 @@ def price_alert():
     expiry_days = 30
     expires_at = datetime.utcnow() + timedelta(days=expiry_days)
 
-    # Use box.floor_price_inr instead of product.floor_price_inr
-    if target_price < lowest_floor_box.floor_price_inr:
-        flash(f"Please enter a price above ₹{lowest_floor_box.floor_price_inr:.2f}", "warning")
+    # Use box.floor_price_inr_unit instead of product.floor_price_inr_unit
+    if target_price < lowest_floor_box.floor_price_inr_unit:
+        flash(f"Please enter a price above ₹{lowest_floor_box.floor_price_inr_unit:.2f}", "warning")
         return redirect(url_for('product_detail', product_id=product_id))
 
     alert = PriceAlert(
@@ -596,7 +596,7 @@ def login():
                         product_id=box.product_id,
                         shipment_id=box.shipment_id,
                         quantity=b['quantity'],
-                        price=box.price_inr
+                        price=box.price_inr_unit
                     )
                     db.session.add(new_item)
 
@@ -744,7 +744,7 @@ def add_to_cart():
                 product_id=box.product_id,
                 shipment_id=box.shipment_id,
                 quantity=quantity,
-                price=box.price_inr
+                price=box.price_inr_unit
             )
             db.session.add(cart_item)
 
@@ -770,7 +770,7 @@ def add_to_cart():
                 'box_id': box_id,
                 'shipment_id': shipment_id,
                 'quantity': quantity,
-                'price': float(box.price_inr)
+                'price': float(box.price_inr_unit)
             })
 
         session['basket'] = basket
@@ -855,10 +855,10 @@ def admin_cart():
             items.append({
                 'product': ci.box.product,
                 'quantity': ci.quantity,
-                'price': ci.box.price_inr,
+                'price': ci.box.price_inr_unit,
                 'cart_item_id': ci.id
             })
-            total += ci.box.price_inr* ci.quantity
+            total += ci.box.price_inr_unit* ci.quantity
     else:
         basket = session.get('basket', [])
         items = []
@@ -1249,7 +1249,7 @@ def add_box_to_shipment(shipment_id):
             shipment_id=shipment.id,
             product_id=product.id,
             quantity=form.quantity.data,
-            landing_price_gbp=form.uk_price_at_shipment.data,
+            landing_price_gbp_box=form.uk_price_at_shipment.data,
             weight_per_unit=product.weight_per_unit,  # pulled from the Product
             expiration_date=form.expiration_date.data,
             dynamic_pricing_enabled=form.dynamic_pricing_enabled.data
@@ -1280,7 +1280,7 @@ def mark_shipment_arrived(shipment_id):
     form = ShipmentArrivalForm()
 
     # Totals in GBP
-    shipment_total_cost = sum(float(box.landing_price_gbp) for box in shipment.boxes)
+    shipment_total_cost = sum(float(box.landing_price_gbp_box) for box in shipment.boxes)
     shipment_total_weight = sum(float(box.weight_per_unit) * box.quantity for box in shipment.boxes)
     shipment_total_cost_including_shipping = shipment_total_cost + float(shipment.transit_cost)
 
@@ -1301,7 +1301,7 @@ def mark_shipment_arrived(shipment_id):
             shipping_share_gbp = (box_weight / shipment_total_weight) * float(shipment.transit_cost)
 
             # Base cost incl. shipping (GBP)
-            box_cost_incl_shipping_gbp = float(box.landing_price_gbp) + shipping_share_gbp
+            box_cost_incl_shipping_gbp = float(box.landing_price_gbp_box) + shipping_share_gbp
 
             # Allocate tariff proportionally (in GBP)
             tariff_share_gbp = (
@@ -1315,14 +1315,15 @@ def mark_shipment_arrived(shipment_id):
             cost_per_bar_gbp = total_box_cost_gbp / box.quantity
 
             # Save GBP floor price for internal reporting
-            box.floor_price_gbp = round(cost_per_bar_gbp, 4)
+            box.floor_price_gbp_unit = round(cost_per_bar_gbp, 4)
 
             # Convert cost-per-bar to INR for selling
             cost_per_bar_inr = gbp_to_inr(cost_per_bar_gbp)
 
             # SELLING PRICES (India-facing)
-            box.floor_price_inr = round(cost_per_bar_inr * 0.8, 2)  # 80% of cost
-            box.price_inr = round(cost_per_bar_inr * 1.15, 2)  # 15% margin
+
+            box.floor_price_inr_unit = round(cost_per_bar_inr * 0.8, 2)  # 80% of cost
+            box.price_inr_unit = round(cost_per_bar_inr * 1.15, 2)  # 15% margin
 
         db.session.commit()
         flash(f"Shipment #{shipment.id} marked as arrived.", "success")
@@ -1392,7 +1393,7 @@ def admin_products():
         active_boxes = [b for b in product.boxes if b.is_active]
         product.has_active_boxes = bool(active_boxes)
         product.total_quantity = sum(b.quantity for b in active_boxes)
-        product.avg_price = (sum(b.price_inr for b in active_boxes) / len(active_boxes)) if active_boxes else 0
+        product.avg_price = (sum(b.price_inr_unit for b in active_boxes) / len(active_boxes)) if active_boxes else 0
         earliest_box = min(active_boxes, key=lambda b: b.expiration_date, default=None)
         product.earliest_expiry = earliest_box.expiration_date if earliest_box else None
         product.days_left = (earliest_box.expiration_date - date.today()).days if earliest_box else None

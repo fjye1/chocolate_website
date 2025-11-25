@@ -10,7 +10,7 @@
                 <p><strong>Rating:</strong> {{ product.average_rating() }} ⭐</p>
 
                 {% set box = product.lowest_price_box() %}
-                <p class="card-text"><strong>₹{{ box.price_inr }}</strong></p>
+                <p class="card-text"><strong>₹{{ box.price_inr_unit }}</strong></p>
 
                 {% if current_user.is_authenticated and product.id in user_alerts %}
                 <div class="alert alert-success d-flex align-items-center p-2 mb-2 rounded shadow-sm"

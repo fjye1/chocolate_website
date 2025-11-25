@@ -31,8 +31,8 @@
                 </thead>
                 <tbody>
                 {% for price, data in price_groups.items() %}
-                <tr {% if next_box and price== next_box.price_inr %} class="table-success" {% endif %}>
-                    <td>₹{{ '%.2f' % data.box.price_inr }}</td>
+                <tr {% if next_box and price== next_box.price_inr_unit %} class="table-success" {% endif %}>
+                    <td>₹{{ '%.2f' % data.box.price_inr_unit }}</td>
                     <td>{{ data.quantity }}</td>
                     <td>{{ data.expiry.strftime('%Y-%m-%d') if data.expiry else 'N/A' }}</td>
                     <td>{{ data.box.id }}</td>
@@ -60,7 +60,7 @@
                         <tbody>
                         <tr>
                             <th scope="row">Price</th>
-                            <td>₹{{ next_box.price_inr }}</td>
+                            <td>₹{{ next_box.price_inr_unit }}</td>
                         </tr>
                         <tr>
                             <th scope="row">Stock at this price</th>
@@ -113,7 +113,7 @@
                 {{ add_to_cart_form.shipment_id(value=next_box.shipment_id if next_box else '') }}
 
                 <div class="alert alert-success text-center" role="alert" style="font-size:1.4rem;">
-                    <strong>₹{{ next_box.price_inr }}</strong>
+                    <strong>₹{{ next_box.price_inr_unit }}</strong>
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     <button type="button" class="qty-btn minus" style="border: none; background: transparent;">
