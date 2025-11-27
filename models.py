@@ -109,6 +109,7 @@ class Product(db.Model):
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
     image = db.Column(db.String(200))
+    pdf_image = db.Column(db.String(200), nullable=True)
     weight_per_unit = db.Column(db.Float, nullable=False)  # per unit weight
     is_active = db.Column(db.Boolean, default=True)
 

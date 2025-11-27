@@ -3,6 +3,9 @@ import io
 import json
 import os
 import uuid
+from PIL import Image, UnidentifiedImageError
+# plugin registers automatically when imported (no direct usage required)
+import pillow_avif
 from datetime import datetime, timedelta, timezone, date
 from functools import wraps
 
@@ -1349,23 +1352,54 @@ def create_product():
     if form.validate_on_submit():
         image_file = form.image.data
         image_filename = None
+        pdf_friendly_filename = None
 
         if image_file:
-            ext = os.path.splitext(image_file.filename)[1]
+            # original extension (lowercase)
+            ext = os.path.splitext(image_file.filename)[1].lower()
+            # generate stable filename for original
             image_filename = f"{uuid.uuid4()}{ext}"
-            save_dir = 'static/images/choc'
+            save_dir = os.path.join(current_app.root_path, 'static', 'images', 'choc')
             os.makedirs(save_dir, exist_ok=True)
             image_path = os.path.join(save_dir, image_filename)
             image_file.save(image_path)
 
-        # Save the product to the database with the image path
+            # default: use original if already PDF-friendly
+            if ext in ['.jpg', '.jpeg', '.png']:
+                pdf_friendly_filename = image_filename
+            else:
+                # try converting with Pillow (pillow-avif-plugin provides AVIF support)
+                try:
+                    png_fname = f"{uuid.uuid4()}.png"
+                    png_path = os.path.join(save_dir, png_fname)
+
+                    with Image.open(image_path) as img:
+                        # convert to RGB to avoid issues with some formats / transparency
+                        img = img.convert("RGB")
+                        img.save(png_path, format='PNG')
+
+                    pdf_friendly_filename = png_fname
+
+                except UnidentifiedImageError:
+                    # conversion failed — fall back to original (may break PDF generation)
+                    current_app.logger.exception("Image conversion failed for %s", image_path)
+                    pdf_friendly_filename = image_filename
+                except Exception:
+                    current_app.logger.exception("Unexpected error converting image %s", image_path)
+                    pdf_friendly_filename = image_filename
+
+        # Build relative paths stored in DB (same convention you're already using)
+        rel_image = f"images/choc/{image_filename}" if image_filename else None
+        rel_pdf_image = f"images/choc/{pdf_friendly_filename}" if pdf_friendly_filename else None
+
         new_product = Product(
             name=form.name.data,
             description=form.description.data,
             weight_per_unit=float(form.weight_per_unit.data),
-            image=f'images/choc/{image_filename}' if image_filename else None,
+            image=rel_image,
+            pdf_image=rel_pdf_image,
             ingredients=form.ingredients.data,
-            allergens=json.dumps([a.strip() for a in form.allergens.data.split(',') if a.strip()]),
+            allergens=json.dumps([a.strip() for a in (form.allergens.data or "").split(',') if a.strip()]),
             energy_kj=form.energy_kj.data,
             energy_kcal=form.energy_kcal.data,
             fat_g=form.fat_g.data,
@@ -1375,8 +1409,8 @@ def create_product():
             fibre_g=form.fibre_g.data,
             protein_g=form.protein_g.data,
             salt_g=form.salt_g.data
-
         )
+
         db.session.add(new_product)
         db.session.commit()
 

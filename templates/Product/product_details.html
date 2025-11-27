@@ -332,7 +332,7 @@
                                     const price = context.parsed.y;
                                     const index = context.dataIndex;
                                     const sales = {{ sales|tojson }}[index];
-                                    return `£${price.toFixed(2)} (Sales: ${sales})`;
+                                    return `₹${price.toFixed(2)} (Sales: ${sales})`;
                                 }
                             }
                         }
