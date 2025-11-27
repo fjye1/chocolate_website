@@ -1,10 +1,11 @@
 import csv
 import io
+import json
 import os
 import uuid
 from datetime import datetime, timedelta, timezone, date
 from functools import wraps
-import json
+
 import stripe
 from dotenv import load_dotenv
 from flask import Flask, render_template, redirect, url_for, flash, request, abort, jsonify, make_response, current_app, \
@@ -59,10 +60,12 @@ ckeditor = CKEditor(app)
 choc_email = os.getenv("CHOC_EMAIL")
 choc_password = os.getenv("CHOC_PASSWORD")
 
-from models import Cart, CartItem, Address, User, Orders, Product, Tag, OrderItem, Comment, PriceAlert, SiteVisitCount, Tasks, Box, Shipment
+from models import Cart, CartItem, Address, User, Orders, Product, Tag, OrderItem, Comment, PriceAlert, SiteVisitCount, \
+    Tasks, Box, Shipment
 from functions import update_dynamic_prices, ProductService, inr_to_gbp, gbp_to_inr
 
 from tasks import simple_task
+
 
 @app.context_processor
 def inject_cart():
@@ -79,6 +82,7 @@ def inject_cart():
         cart_items = session.get('basket', [])
 
     return dict(cart_items=cart_items)
+
 
 @app.route("/run_task", methods=["GET"])
 def run_task():
@@ -271,7 +275,7 @@ def home():
                            comments=random_comments,
                            sorted_products=sorted_products,
                            boxes=boxes,
-                           user_alerts= user_alerts)
+                           user_alerts=user_alerts)
 
 
 @app.route('/product')
@@ -281,7 +285,6 @@ def product_page():
     sort = request.args.get('sort')
 
     query = Product.query.filter_by(is_active=True)
-
 
     if product_key:
         tag = Tag.query.filter(Tag.name.ilike(f"%{product_key}%")).first()
@@ -858,7 +861,7 @@ def admin_cart():
                 'price': ci.box.price_inr_unit,
                 'cart_item_id': ci.id
             })
-            total += ci.box.price_inr_unit* ci.quantity
+            total += ci.box.price_inr_unit * ci.quantity
     else:
         basket = session.get('basket', [])
         items = []
@@ -1292,7 +1295,7 @@ def mark_shipment_arrived(shipment_id):
         shipment.date_arrived = datetime.utcnow()
         shipment.tariff_cost_rupees = tariff_cost_rupees
         shipment.tariff_cost_gbp = tariff_cost_gbp
-        shipment.inr_to_gbp_exchange_rate =inr_to_gbp(1)
+        shipment.inr_to_gbp_exchange_rate = inr_to_gbp(1)
 
         for box in shipment.boxes:
             # Total box weight
@@ -1317,8 +1320,8 @@ def mark_shipment_arrived(shipment_id):
 
             # Save GBP cost price per unit
             box.price_gbp_unit = round(cost_per_bar_gbp, 4)
-            #save GBP price * 0.8 as price floor
-            box.floor_price_gbp_unit = round(box.price_gbp_unit *0.8, 2) # 80% of cost
+            # save GBP price * 0.8 as price floor
+            box.floor_price_gbp_unit = round(box.price_gbp_unit * 0.8, 2)  # 80% of cost
 
             # Convert cost-per-bar to INR for selling
             cost_per_bar_inr = gbp_to_inr(cost_per_bar_gbp)
@@ -1327,8 +1330,6 @@ def mark_shipment_arrived(shipment_id):
             box.landing_price_inr_box = round(cost_per_bar_inr * box.quantity, 2)
             box.floor_price_inr_unit = round(cost_per_bar_inr * 0.8, 2)  # 80% of cost
             box.price_inr_unit = round(cost_per_bar_inr * 1.15, 2)  # 15% margin
-
-
 
         db.session.commit()
         flash(f"Shipment #{shipment.id} marked as arrived.", "success")
@@ -1410,14 +1411,15 @@ def admin_products():
         active_boxes = [b for b in product.boxes if b.is_active]
         product.has_active_boxes = bool(active_boxes)
         product.total_quantity = sum(b.quantity for b in active_boxes)
-        product.avg_price = (sum(b.price_inr_unit for b in active_boxes) / len(active_boxes)) if active_boxes else 0
+        total_quantity = sum(b.quantity for b in active_boxes)
+        product.avg_price = (
+                sum(b.price_inr_unit * b.quantity for b in active_boxes) / total_quantity
+        ) if active_boxes and total_quantity else 0
         earliest_box = min(active_boxes, key=lambda b: b.expiration_date, default=None)
         product.earliest_expiry = earliest_box.expiration_date if earliest_box else None
         product.days_left = (earliest_box.expiration_date - date.today()).days if earliest_box else None
         product.dynamic_pricing_enabled = any(b.dynamic_pricing_enabled for b in active_boxes)
         product.tag_names = ', '.join([t.name for t in product.tags])
-
-
 
         # Set a default expiration for boxes with none
         for box in active_boxes:
@@ -1487,6 +1489,7 @@ def admin_edit_product(product_id):
         return redirect(url_for('admin_products'))
 
     return render_template('Admin/admin_products_edit.html', form=form, product=product)
+
 
 ##TODO determine if this is still used i dont think it is 24/11/2025
 @app.route('/admin/products/add/<int:product_id>', methods=['GET', 'POST'])
