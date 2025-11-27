@@ -220,7 +220,7 @@ class Shipment(db.Model):
     # Status
     has_arrived = db.Column(db.Boolean, default=False)  # True once shipment has arrived
     date_arrived = db.Column(db.DateTime, nullable=True)
-
+    inr_to_gbp_exchange_rate = db.Column(db.Float, nullable=False, default=0.0) #True value at time of landing
     boxes = db.relationship('Box', back_populates='shipment', cascade="all, delete-orphan")
 
     @property
@@ -248,7 +248,7 @@ class Shipment(db.Model):
             for sale in box.sales_history:
                 # Only consider sales from this shipment
                 if sale.box.shipment_id == self.id:
-                    total_revenue += sale.sold_quantity * sale.sold_price
+                    total_revenue += (sale.sold_quantity * sale.sold_price)* self.inr_to_gbp_exchange_rate
 
 
         return total_revenue - self.total_cost

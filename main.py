@@ -1290,8 +1290,9 @@ def mark_shipment_arrived(shipment_id):
     if form.validate_on_submit():
         shipment.has_arrived = True
         shipment.date_arrived = datetime.utcnow()
-        shipment.tariff_cost_inr = tariff_cost_rupees
+        shipment.tariff_cost_rupees = tariff_cost_rupees
         shipment.tariff_cost_gbp = tariff_cost_gbp
+        shipment.inr_to_gbp_exchange_rate =inr_to_gbp(1)
 
         for box in shipment.boxes:
             # Total box weight
@@ -1314,16 +1315,20 @@ def mark_shipment_arrived(shipment_id):
             # Cost per bar (GBP)
             cost_per_bar_gbp = total_box_cost_gbp / box.quantity
 
-            # Save GBP floor price for internal reporting
-            box.floor_price_gbp_unit = round(cost_per_bar_gbp, 4)
+            # Save GBP cost price per unit
+            box.price_gbp_unit = round(cost_per_bar_gbp, 4)
+            #save GBP price * 0.8 as price floor
+            box.floor_price_gbp_unit = round(box.price_gbp_unit *0.8, 2) # 80% of cost
 
             # Convert cost-per-bar to INR for selling
             cost_per_bar_inr = gbp_to_inr(cost_per_bar_gbp)
 
             # SELLING PRICES (India-facing)
-
+            box.landing_price_inr_box = round(cost_per_bar_inr * box.quantity, 2)
             box.floor_price_inr_unit = round(cost_per_bar_inr * 0.8, 2)  # 80% of cost
             box.price_inr_unit = round(cost_per_bar_inr * 1.15, 2)  # 15% margin
+
+
 
         db.session.commit()
         flash(f"Shipment #{shipment.id} marked as arrived.", "success")
