@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, PasswordField, DecimalField, IntegerField, TextAreaField, DateField, \
-    EmailField, SelectField, BooleanField, HiddenField
+    EmailField, SelectField, BooleanField, HiddenField, FloatField
 from wtforms.validators import DataRequired, NumberRange, EqualTo, Email, Optional
 from flask_ckeditor import CKEditorField
 from flask_wtf.file import FileField, FileAllowed
@@ -40,6 +40,20 @@ class ProductForm(FlaskForm):
     image = FileField('Product Image', validators=[FileAllowed(['jpg', 'png', 'jpeg', 'avif'])])
     weight_per_unit = DecimalField('Weight per Unit (g)', validators=[DataRequired()])
     tags = StringField('Tags', validators=[Optional()])
+
+    ingredients = TextAreaField("Ingredients", validators=[Optional()])
+    allergens = StringField("Allergens (comma-separated)", validators=[Optional()])
+
+    # Nutrition
+    energy_kj = FloatField("Energy (kJ)", validators=[Optional()])
+    energy_kcal = FloatField("Energy (kcal)", validators=[Optional()])
+    fat_g = FloatField("Fat (g)", validators=[Optional()])
+    saturates_g = FloatField("Saturates (g)", validators=[Optional()])
+    carbs_g = FloatField("Carbs (g)", validators=[Optional()])
+    sugars_g = FloatField("Sugars (g)", validators=[Optional()])
+    fibre_g = FloatField("Fibre (g)", validators=[Optional()])
+    protein_g = FloatField("Protein (g)", validators=[Optional()])
+    salt_g = FloatField("Salt (g)", validators=[Optional()])
     submit = SubmitField('Create Product')
 
 

@@ -4,6 +4,7 @@
 <h3> this form creates a new product with its starting quantity dont use this to update existing products</h3>
 <form method="POST" enctype="multipart/form-data">
     {{ form.hidden_tag() }}
+
     <div>
         {{ form.name.label }}<br>
         {{ form.name(size=40) }}
@@ -13,16 +14,43 @@
         {{ form.description.label }}<br>
         {{ form.description(size=60) }}
     </div>
+
     <div>
         {{ form.image.label }}<br>
         {{ form.image(size=60) }}
     </div>
+
     <div>
         {{ form.weight_per_unit.label }}<br>
         {{ form.weight_per_unit() }}
     </div>
 
+    <div>
+        {{ form.ingredients.label }}<br>
+        {{ form.ingredients(rows=3, cols=60) }}
+    </div>
+
+    <div>
+        {{ form.allergens.label }}<br>
+        {{ form.allergens(size=60) }}
+        <small>Enter comma-separated (e.g., milk, peanuts, soy)</small>
+    </div>
+
+    <fieldset>
+        <legend>Nutrition (per 100g)</legend>
+        <div>{{ form.energy_kj.label }} {{ form.energy_kj() }}</div>
+        <div>{{ form.energy_kcal.label }} {{ form.energy_kcal() }}</div>
+        <div>{{ form.fat_g.label }} {{ form.fat_g() }}</div>
+        <div>{{ form.saturates_g.label }} {{ form.saturates_g() }}</div>
+        <div>{{ form.carbs_g.label }} {{ form.carbs_g() }}</div>
+        <div>{{ form.sugars_g.label }} {{ form.sugars_g() }}</div>
+        <div>{{ form.fibre_g.label }} {{ form.fibre_g() }}</div>
+        <div>{{ form.protein_g.label }} {{ form.protein_g() }}</div>
+        <div>{{ form.salt_g.label }} {{ form.salt_g() }}</div>
+    </fieldset>
+
     <button type="submit" class="btn btn-primary mt-2">Create Product</button>
+</form>
 </form>
 
 {% endblock %}

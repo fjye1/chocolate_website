@@ -4,7 +4,7 @@ import os
 import uuid
 from datetime import datetime, timedelta, timezone, date
 from functools import wraps
-
+import json
 import stripe
 from dotenv import load_dotenv
 from flask import Flask, render_template, redirect, url_for, flash, request, abort, jsonify, make_response, current_app, \
@@ -1357,7 +1357,19 @@ def create_product():
             name=form.name.data,
             description=form.description.data,
             weight_per_unit=float(form.weight_per_unit.data),
-            image=f'images/choc/{image_filename}' if image_filename else None
+            image=f'images/choc/{image_filename}' if image_filename else None,
+            ingredients=form.ingredients.data,
+            allergens=json.dumps([a.strip() for a in form.allergens.data.split(',') if a.strip()]),
+            energy_kj=form.energy_kj.data,
+            energy_kcal=form.energy_kcal.data,
+            fat_g=form.fat_g.data,
+            saturates_g=form.saturates_g.data,
+            carbs_g=form.carbs_g.data,
+            sugars_g=form.sugars_g.data,
+            fibre_g=form.fibre_g.data,
+            protein_g=form.protein_g.data,
+            salt_g=form.salt_g.data
+
         )
         db.session.add(new_product)
         db.session.commit()
