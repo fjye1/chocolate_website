@@ -112,6 +112,20 @@ class Product(db.Model):
     weight_per_unit = db.Column(db.Float, nullable=False)  # per unit weight
     is_active = db.Column(db.Boolean, default=True)
 
+    ingredients = db.Column(db.Text, nullable=True)
+    allergens = db.Column(db.JSON, nullable=True)
+
+    # Nutrition fields
+    energy_kj = db.Column(db.Float, nullable=True)
+    energy_kcal = db.Column(db.Float, nullable=True)
+    fat_g = db.Column(db.Float, nullable=True)
+    saturates_g = db.Column(db.Float, nullable=True)
+    carbs_g = db.Column(db.Float, nullable=True)
+    sugars_g = db.Column(db.Float, nullable=True)
+    fibre_g = db.Column(db.Float, nullable=True)
+    protein_g = db.Column(db.Float, nullable=True)
+    salt_g = db.Column(db.Float, nullable=True)
+
     # Relationships
     boxes = db.relationship('Box', back_populates='product', cascade="all, delete-orphan")
     comments = db.relationship('Comment', backref='product', lazy=True)
