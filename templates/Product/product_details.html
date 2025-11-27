@@ -198,6 +198,7 @@
                         </div>
                         <div class="tab-pane fade" id="nutrition" role="tabpanel" aria-labelledby="nutrition-tab">
                             <ul class="list-unstyled mb-0">
+                                <li>Values per 100g</li>
                                 <li>Energy: {{ product.energy_kj or 0 }} kJ / {{ product.energy_kcal or 0 }} kcal</li>
                                 <li>Fat: {{ product.fat_g or 0 }} g</li>
                                 <li>Saturates: {{ product.saturates_g or 0 }} g</li>
@@ -359,3 +360,5 @@
 
         </script>
         {% endblock %}
+    </div>
+</div>
