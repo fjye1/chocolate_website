@@ -10,6 +10,7 @@
             <img src="{{ url_for('static', filename=product.image) }}" class="img-fluid" alt="{{ product.name }}">
         </div>
 
+
         <!-- Product Info -->
 
         <div class="col-md-6">
@@ -131,12 +132,10 @@
                     {{ add_to_cart_form.submit(class="btn btn-primary rounded-pill px-3", style="margin-left: 30px;") }}
 
                 </div>
-
-                <!-- Interactive Price Chart -->
-                <h5 class="mt-4">Price Trend (Interactive)</h5>
-                <canvas id="priceChart" height="200" class="w-100 mb-3"></canvas>
             </form>
 
+        </div>
+        <div>
             <!-- Price Alert -->
             {% if current_user.is_authenticated %}
             {% if user_alert %}
@@ -152,153 +151,211 @@
             {% else %}
             <form id="price-alert-form" method="POST" action="{{ url_for('price_alert') }}">
                 <label for="target_price">Notify me if price drops to ₹:</label>
-                <input type="number" id="target_price" name="target_price" min="{{ product.price_floor | default(0) }}"
+                <input type="number" id="target_price" name="target_price"
+                       min="{{ product.price_floor | default(0) }}"
                        step="0.01" placeholder="Target price" required>
                 <input type="hidden" name="product_id" value="{{ product.id }}">
                 <button class="btn btn-success rounded-pill px-3" type="submit">Notify Me</button>
             </form>
             {% endif %}
             {% endif %}
+        </div>
+        <div class="container mt-4">
+            <div class="row g-3">
+                <!-- Product Info Panel: 50% on md+, 100% on smaller screens -->
+                <div class="col-12 col-md-6">
+                    <!-- Tabs -->
+                    <ul class="nav nav-tabs" id="productInfoTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="ingredients-tab" data-bs-toggle="tab"
+                                    data-bs-target="#ingredients" type="button" role="tab" aria-controls="ingredients"
+                                    aria-selected="true">
+                                Ingredients
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="allergens-tab" data-bs-toggle="tab" data-bs-target="#allergens"
+                                    type="button" role="tab" aria-controls="allergens" aria-selected="false">
+                                Allergens
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="nutrition-tab" data-bs-toggle="tab" data-bs-target="#nutrition"
+                                    type="button" role="tab" aria-controls="nutrition" aria-selected="false">
+                                Nutrition
+                            </button>
+                        </li>
+                    </ul>
 
-            <!-- Admin Delete Buttons -->
-            {% if current_user.admin %}
-            <button type="button" class="btn btn-danger btn-sm mt-3" data-bs-toggle="modal"
-                    data-bs-target="#deleteModal{{ product.id }}">
-                🗑️
-            </button>
-
-            <!-- Delete Modal -->
-            <div class="modal fade" id="deleteModal{{ product.id }}" tabindex="-1"
-                 aria-labelledby="deleteModalLabel{{ product.id }}" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Delete Product: {{ product.name }}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <!-- Tab Content -->
+                    <div class="tab-content card card-body mt-2" id="productInfoTabsContent">
+                        <div class="tab-pane fade show active" id="ingredients" role="tabpanel"
+                             aria-labelledby="ingredients-tab">
+                            <p>{{ product.ingredients or "N/A" }}</p>
                         </div>
-                        <div class="modal-body">
-                            {% if product.order_items|length > 0 %}
-                            <p>This product has been ordered before.<br>You can only soft delete (hide) it.</p>
-                            {% else %}
-                            <p>This product has no order history.<br>You can hard delete or soft delete it.</p>
-                            {% endif %}
+                        <div class="tab-pane fade" id="allergens" role="tabpanel" aria-labelledby="allergens-tab">
+                            <p>{{ product.allergens or "N/A" }}</p>
                         </div>
-                        <div class="modal-footer">
-                            {% if product.order_items|length == 0 %}
-                            <form method="POST" action="{{ url_for('hard_delete_product', product_id=product.id) }}">
-                                <button type="submit" class="btn btn-danger">Hard Delete</button>
-                            </form>
-                            {% endif %}
-                            <form method="POST" action="{{ url_for('soft_delete_product', product_id=product.id) }}">
-                                <button type="submit" class="btn btn-warning">Soft Delete</button>
-                            </form>
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <div class="tab-pane fade" id="nutrition" role="tabpanel" aria-labelledby="nutrition-tab">
+                            <ul class="list-unstyled mb-0">
+                                <li>Energy: {{ product.energy_kj or 0 }} kJ / {{ product.energy_kcal or 0 }} kcal</li>
+                                <li>Fat: {{ product.fat_g or 0 }} g</li>
+                                <li>Saturates: {{ product.saturates_g or 0 }} g</li>
+                                <li>Carbs: {{ product.carbs_g or 0 }} g</li>
+                                <li>Sugars: {{ product.sugars_g or 0 }} g</li>
+                                <li>Fibre: {{ product.fibre_g or 0 }} g</li>
+                                <li>Protein: {{ product.protein_g or 0 }} g</li>
+                                <li>Salt: {{ product.salt_g or 0 }} g</li>
+                            </ul>
                         </div>
                     </div>
                 </div>
+
+                <!-- Price Chart: 50% on md+, 100% on smaller screens -->
+                <div class="col-12 col-md-6">
+                    <h5 class="mt-4">Price Trend (Interactive)</h5>
+                    <canvas id="priceChart" height="200" class="w-100 mb-3"></canvas>
+                </div>
             </div>
-            {% endif %}
         </div>
-    </div>
-</div>
 
-<h1 style="text-align: center; font-family: 'Amsterdam One', cursive; margin: 30px;">
-    Related Products
-</h1>
+        <!-- Admin Delete Buttons -->
+        {% if current_user.admin %}
+        <button type="button" class="btn btn-danger btn-sm mt-3" data-bs-toggle="modal"
+                data-bs-target="#deleteModal{{ product.id }}">
+            🗑️
+        </button>
 
-<div class="col-12 col-lg-8 px-3 py-4 mx-auto">
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
-        {%for product in similar_products %}
-        {{ product_card(product, user_alerts, current_user) }}
-        {% endfor %}
-    </div>
-</div>
-
-
-<!-- Comment Form -->
-{% if can_comment %}
-<p><strong>You can only submit one comment.</strong></p>
-<form method="POST">
-    {{ form.hidden_tag() }}
-    <label for="rating">Rating:</label>
-    <input type="range" id="rating" name="rating" min="1" max="5" value="3" oninput="updateStars(this.value)">
-    <div id="stars" class="star-display">⭐⭐⭐☆☆</div>
-    {{ form.comment_text.label }}
-    {{ form.comment_text(class="form-control") }}
-    <button type="submit" class="btn btn-primary mt-2">Submit</button>
-</form>
-{% endif %}
-<!-- Sleek Comments Section -->
-<div class="sleek-comments">
-    <div class="comments-header">
-        Customer Reviews
-        <span class="comment-count">{{ product.comments|length }}</span>
-    </div>
-
-    {% for comment in product.comments %}
-    <div class="comment-item">
-        <img src="{{ comment.user.email | gravatar }}" class="comment-avatar" alt="{{ comment.user.name }}"/>
-        <div class="comment-text">{{ comment.comment | safe }}</div>
-        <div class="comment-name">
-            {% set parts = comment.user.name.split(' ') %}
-            {{ parts[0] }}{% if parts|length > 1 %} {{ parts[1][0] }}.{% endif %}
+        <!-- Delete Modal -->
+        <div class="modal fade" id="deleteModal{{ product.id }}" tabindex="-1"
+             aria-labelledby="deleteModalLabel{{ product.id }}" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Delete Product: {{ product.name }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        {% if product.order_items|length > 0 %}
+                        <p>This product has been ordered before.<br>You can only soft delete (hide) it.</p>
+                        {% else %}
+                        <p>This product has no order history.<br>You can hard delete or soft delete it.</p>
+                        {% endif %}
+                    </div>
+                    <div class="modal-footer">
+                        {% if product.order_items|length == 0 %}
+                        <form method="POST" action="{{ url_for('hard_delete_product', product_id=product.id) }}">
+                            <button type="submit" class="btn btn-danger">Hard Delete</button>
+                        </form>
+                        {% endif %}
+                        <form method="POST" action="{{ url_for('soft_delete_product', product_id=product.id) }}">
+                            <button type="submit" class="btn btn-warning">Soft Delete</button>
+                        </form>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="comment-rating">
-            {% for i in range(1,6) %}
-            {% if i <= comment.rating %}⭐{% else %}☆{% endif %}
+        {% endif %}
+
+
+        <h1 style="text-align: center; font-family: 'Amsterdam One', cursive; margin: 30px;">
+            Related Products
+        </h1>
+
+        <div class="col-12 col-lg-8 px-3 py-4 mx-auto">
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
+                {%for product in similar_products %}
+                {{ product_card(product, user_alerts, current_user) }}
+                {% endfor %}
+            </div>
+        </div>
+
+
+        <!-- Comment Form -->
+        {% if can_comment %}
+        <p><strong>You can only submit one comment.</strong></p>
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            <label for="rating">Rating:</label>
+            <input type="range" id="rating" name="rating" min="1" max="5" value="3" oninput="updateStars(this.value)">
+            <div id="stars" class="star-display">⭐⭐⭐☆☆</div>
+            {{ form.comment_text.label }}
+            {{ form.comment_text(class="form-control") }}
+            <button type="submit" class="btn btn-primary mt-2">Submit</button>
+        </form>
+        {% endif %}
+        <!-- Sleek Comments Section -->
+        <div class="sleek-comments">
+            <div class="comments-header">
+                Customer Reviews
+                <span class="comment-count">{{ product.comments|length }}</span>
+            </div>
+
+            {% for comment in product.comments %}
+            <div class="comment-item">
+                <img src="{{ comment.user.email | gravatar }}" class="comment-avatar" alt="{{ comment.user.name }}"/>
+                <div class="comment-text">{{ comment.comment | safe }}</div>
+                <div class="comment-name">
+                    {% set parts = comment.user.name.split(' ') %}
+                    {{ parts[0] }}{% if parts|length > 1 %} {{ parts[1][0] }}.{% endif %}
+                </div>
+                <div class="comment-rating">
+                    {% for i in range(1,6) %}
+                    {% if i <= comment.rating %}⭐{% else %}☆{% endif %}
+                    {% endfor %}
+                </div>
+            </div>
             {% endfor %}
         </div>
-    </div>
-    {% endfor %}
-</div>
-<!-- JS -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    const ctx = document.getElementById('priceChart').getContext('2d');
-    const priceChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: {{ dates|tojson }},
-            datasets: [{
-                label: 'Price (₹)',
-                data: {{ prices|tojson }},
-                borderColor: 'rgb(75, 192, 192)',
-                tension: 0.1
-            }]
-        },
-        options: {
-            plugins: {
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const price = context.parsed.y;
-                            const index = context.dataIndex;
-                            const sales = {{ sales|tojson }}[index];
-                            return `£${price.toFixed(2)} (Sales: ${sales})`;
+        <!-- JS -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            const priceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: {{ dates|tojson }},
+                    datasets: [{
+                        label: 'Price (₹)',
+                        data: {{ prices|tojson }},
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const price = context.parsed.y;
+                                    const index = context.dataIndex;
+                                    const sales = {{ sales|tojson }}[index];
+                                    return `£${price.toFixed(2)} (Sales: ${sales})`;
+                                }
+                            }
                         }
                     }
                 }
+            });
+
+            // Quantity button functionality
+            document.querySelector('.qty-btn.minus').addEventListener('click', () => {
+                const input = document.getElementById('quantity-input');
+                let value = parseInt(input.value);
+                if (value > 1) input.value = value - 1;
+            });
+
+            document.querySelector('.qty-btn.plus').addEventListener('click', () => {
+                const input = document.getElementById('quantity-input');
+                let value = parseInt(input.value);
+                input.value = value + 1;
+            });
+
+            // Live star rating
+            function updateStars(value) {
+                document.getElementById('stars').textContent = '⭐'.repeat(value) + '☆'.repeat(5 - value);
             }
-        }
-    });
 
-    // Quantity button functionality
-    document.querySelector('.qty-btn.minus').addEventListener('click', () => {
-        const input = document.getElementById('quantity-input');
-        let value = parseInt(input.value);
-        if (value > 1) input.value = value - 1;
-    });
-
-    document.querySelector('.qty-btn.plus').addEventListener('click', () => {
-        const input = document.getElementById('quantity-input');
-        let value = parseInt(input.value);
-        input.value = value + 1;
-    });
-
-    // Live star rating
-    function updateStars(value) {
-        document.getElementById('stars').textContent = '⭐'.repeat(value) + '☆'.repeat(5 - value);
-    }
-
-</script>
-{% endblock %}
+        </script>
+        {% endblock %}
