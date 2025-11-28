@@ -52,6 +52,13 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("RENDER_DATABASE_URL2")
 ## this is the local database for app development only — use if in offline_db branch
 # app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_size': 10,
+    'max_overflow': 5,
+    'pool_recycle': 3600,
+    'pool_pre_ping': True,
+}
+
 stripe.api_key = os.getenv("STRIPE_API_KEY")
 
 db.init_app(app)
