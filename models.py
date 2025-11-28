@@ -111,7 +111,7 @@ class Product(db.Model):
     image = db.Column(db.String(200))
     pdf_image = db.Column(db.String(200), nullable=True)
     weight_per_unit = db.Column(db.Float, nullable=False)  # per unit weight
-    is_active = db.Column(db.Boolean, default=True)
+    is_active = db.Column(db.Boolean, default=False)
 
     ingredients = db.Column(db.Text, nullable=True)
     allergens = db.Column(db.JSON, nullable=True)
