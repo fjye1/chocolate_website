@@ -8,11 +8,11 @@ from PIL import Image, UnidentifiedImageError
 import pillow_avif
 from datetime import datetime, timedelta, timezone, date
 from functools import wraps
-
+from sqlalchemy import func
 import stripe
 from dotenv import load_dotenv
-from flask import Flask, render_template, redirect, url_for, flash, request, abort, jsonify, make_response, current_app, \
-    session
+from flask import Flask, render_template, redirect, url_for, flash, request, abort, jsonify, make_response, \
+    current_app, session
 from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
 from flask_gravatar import Gravatar
@@ -26,6 +26,11 @@ from extension import db
 from forms import RegisterForm, LoginForm, AddAddress, ProductForm, CommentForm, StockForm, TrackingForm, \
     ShipmentSentForm, BoxForm, ShipmentArrivalForm, AddToCartForm
 
+from models import Cart, CartItem, Address, User, Orders, Product, Tag, OrderItem, Comment, PriceAlert,  \
+    Tasks, Box, Shipment, SiteVisitCount
+from functions import update_dynamic_prices, ProductService, inr_to_gbp, gbp_to_inr
+
+from tasks import simple_task
 load_dotenv()
 
 login_manager = LoginManager()
@@ -46,10 +51,11 @@ def set_security_headers(response):
     return response
 
 
-# TODO the section of code below is to link you to the render Database it won't work if you don't have a render database set up
+# TODO the section of code below is to link you to the render \
+#  Database it won't work if you don't have a render database set up
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("RENDER_DATABASE_URL2")
 
-## this is the local database for app development only — use if in offline_db branch
+# this is the local database for app development only — use if in offline_db branch
 # app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
@@ -69,12 +75,6 @@ ckeditor = CKEditor(app)
 
 choc_email = os.getenv("CHOC_EMAIL")
 choc_password = os.getenv("CHOC_PASSWORD")
-
-from models import Cart, CartItem, Address, User, Orders, Product, Tag, OrderItem, Comment, PriceAlert, SiteVisitCount, \
-    Tasks, Box, Shipment
-from functions import update_dynamic_prices, ProductService, inr_to_gbp, gbp_to_inr
-
-from tasks import simple_task
 
 
 @app.context_processor
@@ -256,7 +256,8 @@ def home():
      <b>Features you can try:</b>
     <ul style="margin:6px 0 0 18px">
       <li>Place orders to see live <b>order updates</b> and <b>confirmation emails</b></li>
-      <li>Dynamic <b>price alerts</b> & <b>daily price updates</b> (managed by an external server via SSH → PostgreSQL)</li>
+      <li>Dynamic <b>price alerts</b> & <b>daily price updates</b> \
+      (managed by an external server via SSH → PostgreSQL)</li>
     </ul>
 
      Interested in seeing more? <br>
@@ -268,7 +269,7 @@ def home():
     random_comments = Comment.query.order_by(func.random()).limit(3).all()
     products = Product.query.filter_by(is_active=True).all()
     sorted_products = sorted(products, key=lambda p: p.average_rating(), reverse=True)
-    boxes = Box.query.join(Product).filter(Product.is_active == True).all()
+    boxes = Box.query.join(Product).filter(Product.is_active).all()
     product_ids = [p.id for p in products]
     user_alerts = {}
     if current_user.is_authenticated:
@@ -372,7 +373,7 @@ def product_detail(product_id):
 
     results = (
         db.session.query(Product)
-        .filter(Product.is_active == True)  # only active products
+        .filter(Product.is_active)  # only active products
         .order_by(
             Product.embedding.cosine_distance(literal(product.embedding))
         )
@@ -385,7 +386,7 @@ def product_detail(product_id):
     comment_form = CommentForm()
     # Only boxes that have arrived and still have stock
     boxes = Box.query.join(Box.shipment) \
-        .filter(Box.product_id == product.id, Shipment.has_arrived == True, Box.quantity > 0) \
+        .filter(Box.product_id == product.id, Shipment.has_arrived, Box.quantity > 0) \
         .order_by(Box.price_inr_unit.desc()) \
         .all()
 
@@ -497,7 +498,7 @@ def price_alert():
         return redirect(url_for('product_detail', product_id=product_id))
 
     expiry_days = 30
-    expires_at = datetime.utcnow() + timedelta(days=expiry_days)
+    expires_at = datetime.now(timezone.utc) + timedelta(days=expiry_days)
 
     # Use box.floor_price_inr_unit instead of product.floor_price_inr_unit
     if target_price < lowest_floor_box.floor_price_inr_unit:
@@ -1302,7 +1303,7 @@ def mark_shipment_arrived(shipment_id):
 
     if form.validate_on_submit():
         shipment.has_arrived = True
-        shipment.date_arrived = datetime.utcnow()
+        shipment.date_arrived = datetime.now(timezone.utc)
         shipment.tariff_cost_rupees = tariff_cost_rupees
         shipment.tariff_cost_gbp = tariff_cost_gbp
         shipment.inr_to_gbp_exchange_rate = inr_to_gbp(1)
@@ -1444,7 +1445,7 @@ def admin_archive():
 def admin_products():
     days_back = 28
     start_date = date.today() - timedelta(days=days_back)
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     products = Product.query.options(joinedload(Product.boxes).joinedload(Box.sales_history)).all()
 
@@ -1532,7 +1533,7 @@ def admin_edit_product(product_id):
     return render_template('Admin/admin_products_edit.html', form=form, product=product)
 
 
-##TODO determine if this is still used i dont think it is 24/11/2025
+# TODO determine if this is still used i dont think it is 24/11/2025
 @app.route('/admin/products/add/<int:product_id>', methods=['GET', 'POST'])
 def admin_add_product(product_id):
     product = db.get_or_404(Product, product_id)
@@ -1559,9 +1560,6 @@ def activate_product(product_id):
     return redirect(request.referrer or url_for('admin_products'))
 
 
-from sqlalchemy import func
-
-
 @app.route('/admin/users')
 @login_required
 @admin_only
@@ -1584,7 +1582,7 @@ def admin_users():
             total_orders
         )
         .outerjoin(Orders, User.id == Orders.user_id)
-        .outerjoin(Address, (User.id == Address.user_id) & (Address.current_address == True))
+        .outerjoin(Address, (User.id == Address.user_id) & Address.current_address)
         .group_by(User.id, Address.street, Address.city, Address.postcode)
         .order_by(total_orders.desc())
     )
