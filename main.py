@@ -59,8 +59,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("RENDER_DATABASE_URL2")
 # app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_size': 10,
-    'max_overflow': 5,
+    'pool_size': 20,
+    'max_overflow': 10,
     'pool_recycle': 3600,
     'pool_pre_ping': True,
 }
