@@ -244,7 +244,7 @@ def new_home():
 def home():
     if not session.get("portfolio_banner_shown"):
         flash("""
-            <b>⚠️ Portfolio Demo Site</b><br>
+            <b>⚠️ Site Under Construction</b><br>
     Please do not use real payment details.<br>
     Payments run in <b>Stripe test mode</b> only.
     <ul style="margin:6px 0 0 18px">
@@ -256,13 +256,9 @@ def home():
      <b>Features you can try:</b>
     <ul style="margin:6px 0 0 18px">
       <li>Place orders to see live <b>order updates</b> and <b>confirmation emails</b></li>
-      <li>Dynamic <b>price alerts</b> & <b>daily price updates</b> \
-      (managed by an external server via SSH → PostgreSQL)</li>
+      <li>Dynamic <b>price alerts</b> & <b>daily price updates</b></li>
     </ul>
 
-     Interested in seeing more? <br>
-    <b>Contact me if you’d like admin access</b> to explore the advanced features.<br>
-    Mobile optimisation coming soon!
             """, "demo")
         session["portfolio_banner_shown"] = True
     admin = current_user.admin if current_user.is_authenticated else False
