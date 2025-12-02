@@ -1633,7 +1633,7 @@ def admin_settings():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))  # use Render's assigned port if available
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=port, debug=False)
 
 "https://cococart.in/"
 "https://snackzack.com/"
