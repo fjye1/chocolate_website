@@ -125,9 +125,9 @@ def count_visit():
     if any(sig in user_agent for sig in bot_signatures):
         # Don't log bots, but DO serve the page
         return None  # continue processing request
-
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
     # Log visit
-    log_line = f"{datetime.now()} | Path: {request.path} | User-Agent: {request.headers.get('User-Agent')}\n"
+    log_line = f"{datetime.now()} | Path: {request.path} | IP: {ip} | User-Agent: {request.headers.get('User-Agent')}\n"
     with open(LOG_PATH, 'a') as f:
         f.write(log_line)
 
