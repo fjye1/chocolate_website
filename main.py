@@ -855,7 +855,7 @@ def cart():
     return render_template('cart.html', items=items, total=total)
 
 
-@app.route('/admin/admin_cart', methods=['GET', 'POST'])
+@app.route('/Admin/admin_cart', methods=['GET', 'POST'])
 @login_required
 @admin_only
 def admin_cart():
