@@ -851,7 +851,7 @@ def cart():
     return render_template('cart.html', items=items, total=total)
 
 
-@app.route('/Admin/admin_cart', methods=['GET', 'POST'])
+@app.route('/admin/admin_cart', methods=['GET', 'POST'])
 @login_required
 @admin_only
 def admin_cart():
@@ -884,7 +884,7 @@ def admin_cart():
                 })
                 total += b['price'] * b['quantity']
 
-    return render_template("admin/admin_cart.html", items=items, total=total)
+    return render_template("Admin/admin_cart.html", items=items, total=total)
 
 
 @app.route('/checkout', methods=['POST', 'GET'])
