@@ -235,44 +235,50 @@ def home():
     if not session.get("portfolio_banner_shown"):
         flash("""
             <b>⚠️ Site Under Construction</b><br>
-    Please do not use real payment details.<br>
-    Payments run in <b>Stripe test mode</b> only.
-    <ul style="margin:6px 0 0 18px">
-      <li>Visa: 4242 4242 4242 4242 (any future expiry, CVC, postcode)</li>
-      <li>3D Secure test: 4000 0027 6000 3184</li>
-    </ul>
-    <b>No orders will be fulfilled.</b><br><br>
-
-     <b>Features you can try:</b>
-    <ul style="margin:6px 0 0 18px">
-      <li>Place orders to see live <b>order updates</b> and <b>confirmation emails</b></li>
-      <li>Dynamic <b>price alerts</b> & <b>daily price updates</b></li>
-    </ul>
-
+            Please do not use real payment details.<br>
+            Payments run in <b>Stripe test mode</b> only.
+            <ul style="margin:6px 0 0 18px">
+              <li>Visa: 4242 4242 4242 4242 (any future expiry, CVC, postcode)</li>
+              <li>3D Secure test: 4000 0027 6000 3184</li>
+            </ul>
+            <b>No orders will be fulfilled.</b><br><br>
+            <b>Features you can try:</b>
+            <ul style="margin:6px 0 0 18px">
+              <li>Place orders to see live <b>order updates</b> and <b>confirmation emails</b></li>
+              <li>Dynamic <b>price alerts</b> & <b>daily price updates</b></li>
+            </ul>
             """, "demo")
         session["portfolio_banner_shown"] = True
+
     admin = current_user.admin if current_user.is_authenticated else False
+
+    # Fetch random comments, limit to 3 in one query
     random_comments = Comment.query.order_by(func.random()).limit(3).all()
-    products = Product.query.filter_by(is_active=True).all()
+
+    # Fetch active products and related boxes in a single query
+    products = Product.query.options(db.joinedload(Product.boxes)).filter_by(is_active=True).all()
     sorted_products = sorted(products, key=lambda p: p.average_rating(), reverse=True)
-    boxes = Box.query.join(Product).filter(Product.is_active).all()
-    product_ids = [p.id for p in products]
+
+    boxes = [box for product in products for box in product.boxes if box.is_active]  # flatten
+
     user_alerts = {}
     if current_user.is_authenticated:
+        product_ids = [p.id for p in products]
         alerts = PriceAlert.query.filter(
             PriceAlert.user_id == current_user.id,
             PriceAlert.product_id.in_(product_ids)
         ).all()
-        # Map product_id → alert
         user_alerts = {alert.product_id: alert for alert in alerts}
 
-    return render_template("home_page.html",
-                           products=products,
-                           admin=admin,
-                           comments=random_comments,
-                           sorted_products=sorted_products,
-                           boxes=boxes,
-                           user_alerts=user_alerts)
+    return render_template(
+        "home_page.html",
+        products=products,
+        admin=admin,
+        comments=random_comments,
+        sorted_products=sorted_products,
+        boxes=boxes,
+        user_alerts=user_alerts
+    )
 
 
 @app.route('/product')
