@@ -28,7 +28,7 @@ from forms import RegisterForm, LoginForm, AddAddress, ProductForm, CommentForm,
 
 from models import Cart, CartItem, Address, User, Orders, Product, Tag, OrderItem, Comment, PriceAlert,  \
     Tasks, Box, Shipment, SiteVisitCount
-from functions import update_dynamic_prices, ProductService, inr_to_gbp, gbp_to_inr, safe_commit
+from functions import update_dynamic_prices, ProductService, inr_to_gbp, gbp_to_inr, safe_commit,precompute_products
 
 from tasks import simple_task
 load_dotenv()
@@ -265,15 +265,7 @@ def home():
         db.selectinload(Product.comments)
     ).filter_by(is_active=True).all()
 
-    # Precompute average rating and lowest price box
-    for product in products:
-        if product.comments:
-            product._avg_rating = round(sum(c.rating for c in product.comments) / len(product.comments), 1)
-        else:
-            product._avg_rating = 0
-
-        arrived_boxes = [b for b in product.boxes if b.is_active and b.shipment.has_arrived]
-        product._lowest_box = min(arrived_boxes, key=lambda b: b.price_inr_unit) if arrived_boxes else None
+    products = precompute_products(products)
 
     sorted_products = sorted(products, key=lambda p: p._avg_rating, reverse=True)
     boxes = [b for p in products for b in p.boxes if b.is_active]  # Flatten active boxes
@@ -319,19 +311,24 @@ def product_page():
             .filter(Tag.name.in_(selected_tags))
             .distinct()
         )
-    products = query.all()  # fetch filtered products
 
+    products = query.options(
+        db.joinedload(Product.boxes).joinedload(Box.shipment),
+        db.selectinload(Product.comments)
+    ).all()
+
+    # Precompute _avg_rating and _lowest_box for all products
+    products = precompute_products(products)
+
+    # Now sort using precomputed values
     if sort == 'price_asc':
-        # sort in Python by the product's lowest price box
-        products.sort(key=lambda p: p.lowest_price_box().price_inr_unit if p.lowest_price_box() else float('inf'))
+        products.sort(key=lambda p: p._lowest_box.price_inr_unit if p._lowest_box else float('inf'))
     elif sort == 'price_desc':
-        products.sort(key=lambda p: p.lowest_price_box().price_inr_unit if p.lowest_price_box() else float('inf'),
-                      reverse=True)
+        products.sort(key=lambda p: p._lowest_box.price_inr_unit if p._lowest_box else float('inf'), reverse=True)
     elif sort == 'rating_asc':
-        products.sort(key=lambda p: p.average_rating())
+        products.sort(key=lambda p: p._avg_rating)
     elif sort == 'rating_desc':
-        products.sort(key=lambda p: p.average_rating(), reverse=True)
-    # if sort is None or invalid, leave products unsorted
+        products.sort(key=lambda p: p._avg_rating, reverse=True)
 
     product_ids = [p.id for p in products]
     user_alerts = {}
@@ -340,7 +337,6 @@ def product_page():
             PriceAlert.user_id == current_user.id,
             PriceAlert.product_id.in_(product_ids)
         ).all()
-        # Map product_id → alert
         user_alerts = {alert.product_id: alert for alert in alerts}
 
     all_tags = (
