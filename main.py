@@ -12,7 +12,7 @@ from sqlalchemy import func
 import stripe
 from dotenv import load_dotenv
 from flask import Flask, render_template, redirect, url_for, flash, request, abort, jsonify, make_response, \
-    current_app, session
+    current_app, session, g
 from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
 from flask_gravatar import Gravatar
@@ -76,22 +76,22 @@ ckeditor = CKEditor(app)
 choc_email = os.getenv("CHOC_EMAIL")
 choc_password = os.getenv("CHOC_PASSWORD")
 
+@app.before_request
+def load_cart():
+    g.cart_items = []
 
+    if current_user.is_authenticated:
+        cart = Cart.query.filter_by(user_id=current_user.id).first()
+        if cart:
+            g.cart_items = [
+                {'product_id': item.product_id, 'quantity': item.quantity}
+                for item in cart.items
+            ]
+    else:
+        g.cart_items = session.get('basket', [])
 @app.context_processor
 def inject_cart():
-    # Default empty
-    cart_items = []
-
-    # Logged in user: pull from DB
-    if current_user.is_authenticated:
-        cart = get_user_cart(current_user.id)
-        if cart:
-            cart_items = [{'product_id': item.product_id, 'quantity': item.quantity} for item in cart.items]
-    else:
-        # Guest user: use session basket
-        cart_items = session.get('basket', [])
-
-    return dict(cart_items=cart_items)
+    return dict(cart_items=g.cart_items)
 
 
 @app.route("/run_task", methods=["GET"])
