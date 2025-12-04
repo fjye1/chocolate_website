@@ -76,6 +76,40 @@ ckeditor = CKEditor(app)
 choc_email = os.getenv("CHOC_EMAIL")
 choc_password = os.getenv("CHOC_PASSWORD")
 
+LOG_PATH = 'logs/visit_log.txt'
+
+@app.before_request
+def count_visit():
+    if 'counted_today' in session:
+        return None
+
+    if request.path.startswith((
+            '/static', '/favicon', '/robots.txt', '/manifest.json'
+        )) or request.path.endswith(('.css', '.js', '.png', '.jpg', '.ico')):
+        return None
+
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    log_line = f"{datetime.now()} | Path: {request.path} | IP: {ip}\n"
+    with open(LOG_PATH, 'a') as f:
+        f.write(log_line)
+
+    # Only query DB once per process
+    if not hasattr(g, 'today_counter'):
+        today = date.today()
+        g.today_counter = SiteVisitCount.query.get(today)
+        if not g.today_counter:
+            g.today_counter = SiteVisitCount(date=today, visit_count=1)
+            db.session.add(g.today_counter)
+        else:
+            g.today_counter.visit_count += 1
+        db.session.commit()
+    else:
+        g.today_counter.visit_count += 1
+        db.session.commit()
+
+    session['counted_today'] = True
+
+
 @app.before_request
 def load_cart():
     g.cart_items = []
@@ -100,49 +134,9 @@ def run_task():
     return "Task queued!"
 
 
-LOG_PATH = 'logs/visit_log.txt'
 
 
-@app.before_request
-def count_visit():
-    # Skip if already counted this session today
-    if 'counted_today' in session:
-        return None
 
-    # Skip static files (css, js, images)
-    if request.path.startswith('/static'):
-        return None
-
-    # Check if request looks like a bot
-    user_agent = request.headers.get('User-Agent', '').lower()
-    bot_signatures = [
-        'go-http-client',  # Render health checks, Go bots
-        'curl',  # command-line requests
-        'bot',  # generic bot keyword
-        'spider',  # web crawlers
-        'python-requests'  # from server
-    ]
-    if any(sig in user_agent for sig in bot_signatures):
-        # Don't log bots, but DO serve the page
-        return None  # continue processing request
-    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-    # Log visit
-    log_line = f"{datetime.now()} | Path: {request.path} | IP: {ip} | User-Agent: {request.headers.get('User-Agent')}\n"
-    with open(LOG_PATH, 'a') as f:
-        f.write(log_line)
-
-    # Count visits
-    today = date.today()
-    counter = SiteVisitCount.query.get(today)
-    if not counter:
-        counter = SiteVisitCount(date=today, visit_count=1)
-        db.session.add(counter)
-    else:
-        counter.visit_count += 1
-    db.session.commit()
-
-    # Mark so not counted again today
-    session['counted_today'] = True
 
 
 def get_user_cart(user_id):
