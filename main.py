@@ -18,7 +18,7 @@ from flask_ckeditor import CKEditor
 from flask_gravatar import Gravatar
 from flask_login import LoginManager, login_user, current_user, login_required, logout_user, AnonymousUserMixin
 from sqlalchemy import literal
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 from werkzeug.security import generate_password_hash, check_password_hash
 from xhtml2pdf import pisa
 
@@ -41,6 +41,10 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = True  # Enable this when using HTTPS
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
+# Make sure to remove session at the end of request
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    db.session.remove()
 
 @app.after_request
 def set_security_headers(response):
@@ -59,8 +63,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("RENDER_DATABASE_URL2")
 # app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_size': 20,
-    'max_overflow': 10,
+    'pool_size': 3,
+    'max_overflow': 2,
     'pool_recycle': 3600,
     'pool_pre_ping': True,
 }
@@ -250,16 +254,29 @@ def home():
             """, "demo")
         session["portfolio_banner_shown"] = True
 
-    admin = current_user.admin if current_user.is_authenticated else False
-
-    # Fetch random comments, limit to 3 in one query
+    # Fetch 3 random comments efficiently
     random_comments = Comment.query.order_by(func.random()).limit(3).all()
 
-    # Fetch active products and related boxes in a single query
-    products = Product.query.options(db.joinedload(Product.boxes)).filter_by(is_active=True).all()
-    sorted_products = sorted(products, key=lambda p: p.average_rating(), reverse=True)
+    admin = current_user.admin if current_user.is_authenticated else False
 
-    boxes = [box for product in products for box in product.boxes if box.is_active]  # flatten
+    # Preload boxes with shipments and comments to avoid lazy loading
+    products = Product.query.options(
+        db.joinedload(Product.boxes).joinedload(Box.shipment),
+        db.selectinload(Product.comments)
+    ).filter_by(is_active=True).all()
+
+    # Precompute average rating and lowest price box
+    for product in products:
+        if product.comments:
+            product._avg_rating = round(sum(c.rating for c in product.comments) / len(product.comments), 1)
+        else:
+            product._avg_rating = 0
+
+        arrived_boxes = [b for b in product.boxes if b.is_active and b.shipment.has_arrived]
+        product._lowest_box = min(arrived_boxes, key=lambda b: b.price_inr_unit) if arrived_boxes else None
+
+    sorted_products = sorted(products, key=lambda p: p._avg_rating, reverse=True)
+    boxes = [b for p in products for b in p.boxes if b.is_active]  # Flatten active boxes
 
     user_alerts = {}
     if current_user.is_authenticated:
@@ -1625,7 +1642,7 @@ def admin_settings():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))  # use Render's assigned port if available
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="0.0.0.0", port=port, debug=True)
 
 "https://cococart.in/"
 "https://snackzack.com/"
