@@ -1,14 +1,13 @@
+# Standard library imports
 import csv
 import io
 import json
 import os
 import uuid
-from PIL import Image, UnidentifiedImageError
-# plugin registers automatically when imported (no direct usage required)
-import pillow_avif
 from datetime import datetime, timedelta, timezone, date
 from functools import wraps
-from sqlalchemy import func
+
+# Third-party imports
 import stripe
 from dotenv import load_dotenv
 from flask import Flask, render_template, redirect, url_for, flash, request, abort, jsonify, make_response, \
@@ -17,48 +16,39 @@ from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
 from flask_gravatar import Gravatar
 from flask_login import LoginManager, login_user, current_user, login_required, logout_user, AnonymousUserMixin
-from sqlalchemy import literal
+from PIL import Image, UnidentifiedImageError
+import pillow_avif  # plugin registers automatically when imported (no direct usage required)
+from sqlalchemy import func, literal, event
 from sqlalchemy.orm import joinedload, selectinload
 from werkzeug.security import generate_password_hash, check_password_hash
 from xhtml2pdf import pisa
+import threading
 
+# Local application imports
 from extension import db
 from forms import RegisterForm, LoginForm, AddAddress, ProductForm, CommentForm, StockForm, TrackingForm, \
     ShipmentSentForm, BoxForm, ShipmentArrivalForm, AddToCartForm
-
-from models import Cart, CartItem, Address, User, Orders, Product, Tag, OrderItem, Comment, PriceAlert,  \
+from models import Cart, CartItem, Address, User, Orders, Product, Tag, OrderItem, Comment, PriceAlert, \
     Tasks, Box, Shipment, SiteVisitCount
-from functions import update_dynamic_prices, ProductService, inr_to_gbp, gbp_to_inr, safe_commit,precompute_products
-
+from functions import update_dynamic_prices, ProductService, inr_to_gbp, gbp_to_inr, safe_commit, precompute_products
 from tasks import simple_task
+
+# Load environment variables
 load_dotenv()
 
-login_manager = LoginManager()
-
+# Initialize Flask app
 app = Flask(__name__)
+
+# App configuration
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = True  # Enable this when using HTTPS
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-# Make sure to remove session at the end of request
-@app.teardown_appcontext
-def shutdown_session(exception=None):
-    db.session.remove()
-
-@app.after_request
-def set_security_headers(response):
-    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-    response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-XSS-Protection'] = '1; mode=block'
-    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
-    return response
-
-
-# TODO the section of code below is to link you to the render \
+# Database configuration
+# TODO the section of code below is to link you to the render
 #  Database it won't work if you don't have a render database set up
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("RENDER_DATABASE_URL2")
-
 # this is the local database for app development only — use if in offline_db branch
 # app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 
@@ -69,18 +59,76 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
 }
 
-stripe.api_key = os.getenv("STRIPE_API_KEY")
-
+# Initialize extensions
 db.init_app(app)
 
+# Connection monitoring setup (after db.init_app)
+with app.app_context():
+    engine = db.engine
+
+    connection_count = 0
+    count_lock = threading.Lock()
+
+
+    @event.listens_for(engine, "connect")
+    def receive_connect(dbapi_conn, connection_record):
+        global connection_count
+        with count_lock:
+            connection_count += 1
+            print(f"🟢 CONNECTION OPENED | Total active: {connection_count}")
+
+
+    @event.listens_for(engine, "close")
+    def receive_close(dbapi_conn, connection_record):
+        global connection_count
+        with count_lock:
+            connection_count -= 1
+            print(f"🔴 CONNECTION CLOSED | Total active: {connection_count}")
+
+
+    def print_pool_status():
+        pool = engine.pool
+        print(f"\n📊 POOL STATUS:")
+        print(f"   Pool size: {pool.size()}")
+        print(f"   Checked out: {pool.checkedout()}")
+        print(f"   Overflow: {pool.overflow()}")
+        print(f"   Checked in: {pool.checkedin()}")
+        print(f"   Total: {pool.size() + pool.overflow()}\n")
+
+@app.route('/test_pool')
+def test_pool():
+    print_pool_status()
+    # your database query here
+    return "Check console"
+
+login_manager = LoginManager()
 login_manager.init_app(app)
 bootstrap = Bootstrap5(app)
 ckeditor = CKEditor(app)
 
+# Third-party API keys
+stripe.api_key = os.getenv("STRIPE_API_KEY")
+
+# Application constants
 choc_email = os.getenv("CHOC_EMAIL")
 choc_password = os.getenv("CHOC_PASSWORD")
-
 LOG_PATH = 'logs/visit_log.txt'
+
+
+# Flask hooks and middleware
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    db.session.remove()
+
+
+@app.after_request
+def set_security_headers(response):
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    return response
+
 
 @app.before_request
 def count_visit():
@@ -89,7 +137,7 @@ def count_visit():
 
     if request.path.startswith((
             '/static', '/favicon', '/robots.txt', '/manifest.json'
-        )) or request.path.endswith(('.css', '.js', '.png', '.jpg', '.ico')):
+    )) or request.path.endswith(('.css', '.js', '.png', '.jpg', '.ico')):
         return None
 
     ip = request.headers.get('X-Forwarded-For', request.remote_addr)
