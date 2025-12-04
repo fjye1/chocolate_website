@@ -19,6 +19,12 @@ _cached_rates = None
 _cached_at = 0
 CACHE_TTL = 10 * 60  # cache for 10 minutes
 
+def safe_commit():
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
 
 def get_exchange_rates():
     global _cached_rates, _cached_at

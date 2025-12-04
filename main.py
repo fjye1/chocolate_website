@@ -28,7 +28,7 @@ from forms import RegisterForm, LoginForm, AddAddress, ProductForm, CommentForm,
 
 from models import Cart, CartItem, Address, User, Orders, Product, Tag, OrderItem, Comment, PriceAlert,  \
     Tasks, Box, Shipment, SiteVisitCount
-from functions import update_dynamic_prices, ProductService, inr_to_gbp, gbp_to_inr
+from functions import update_dynamic_prices, ProductService, inr_to_gbp, gbp_to_inr, safe_commit
 
 from tasks import simple_task
 load_dotenv()
@@ -102,10 +102,10 @@ def count_visit():
             db.session.add(g.today_counter)
         else:
             g.today_counter.visit_count += 1
-        db.session.commit()
+        safe_commit()
     else:
         g.today_counter.visit_count += 1
-        db.session.commit()
+        safe_commit()
 
     session['counted_today'] = True
 
@@ -192,7 +192,7 @@ def load_csv_data():
                     quantity=int(row['quantity'])
                 )
                 db.session.add(product)
-        db.session.commit()
+        safe_commit()
 
 
 # Uncomment and run once to load CSV
@@ -212,7 +212,7 @@ def run_dynamic_pricing():
 def toggle_dynamic_pricing(product_id):
     product = ProductService.get_product_by_id(product_id)
     product.dynamic_pricing_enabled = not product.dynamic_pricing_enabled
-    db.session.commit()
+    safe_commit()
     return redirect(request.referrer or url_for("admin_products"))
 
 
@@ -431,7 +431,7 @@ def product_detail(product_id):
             rating=comment_form.rating.data
         )
         db.session.add(new_comment)
-        db.session.commit()
+        safe_commit()
         return redirect(url_for('product_detail', product_id=product_id))
 
     start_date = date.today() - timedelta(days=28)
@@ -498,7 +498,7 @@ def price_alert():
         expires_at=expires_at
     )
     db.session.add(alert)
-    db.session.commit()
+    safe_commit()
 
     flash(
         f"We'll email you when {product.name} drops to ₹{target_price:.2f}! "
@@ -531,7 +531,7 @@ def register():
             password=hash_and_salted_password,
         )
         db.session.add(new_user)
-        db.session.commit()
+        safe_commit()
 
         login_user(new_user)
 
@@ -542,7 +542,7 @@ def register():
             if not cart:
                 cart = Cart(user_id=new_user.id, created_at=datetime.now(timezone.utc))
                 db.session.add(cart)
-                db.session.commit()
+                safe_commit()
             for b in basket:
                 existing_item = CartItem.query.filter_by(cart_id=cart.id, product_id=b['product_id']).first()
                 if existing_item:
@@ -550,7 +550,7 @@ def register():
                 else:
                     new_item = CartItem(cart_id=cart.id, product_id=b['product_id'], quantity=b['quantity'])
                     db.session.add(new_item)
-            db.session.commit()
+            safe_commit()
             session.pop('basket', None)
 
         return redirect(url_for("home"))
@@ -574,7 +574,7 @@ def login():
             if not cart:
                 cart = Cart(user_id=current_user.id, created_at=datetime.now(timezone.utc))
                 db.session.add(cart)
-                db.session.commit()
+                safe_commit()
 
             for b in basket:
                 # Ensure the box exists
@@ -600,7 +600,7 @@ def login():
                     )
                     db.session.add(new_item)
 
-            db.session.commit()
+            safe_commit()
             session.pop('basket', None)  # clear guest basket
         return redirect(url_for('home'))
 
@@ -628,7 +628,7 @@ def delete_alert(alert_id):
         abort(403)
 
     db.session.delete(alert)
-    db.session.commit()
+    safe_commit()
     flash("Price alert deleted.", "success")
     return redirect(url_for('profile_price_alerts'))
 
@@ -657,7 +657,7 @@ def profile_addresses():
             current_address=True
         )
         db.session.add(address)
-        db.session.commit()
+        safe_commit()
 
         flash("Address saved and set as current!", "success")
         return redirect(url_for('profile'))
@@ -677,7 +677,7 @@ def delete_address(address_id):
 
     # Soft delete instead of hard delete
     address.deleted = True
-    db.session.commit()
+    safe_commit()
 
     flash("Address removed from your profile.", "success")
     return redirect(url_for('profile_addresses'))
@@ -694,7 +694,7 @@ def set_current_address(address_id):
     # Set selected address to True
     address.current_address = True
 
-    db.session.commit()
+    safe_commit()
     flash("Current address updated.", "success")
     return redirect(url_for('profile_addresses'))
 
@@ -727,7 +727,7 @@ def add_to_cart():
         if not cart:
             cart = Cart(user_id=current_user.id, created_at=datetime.now(timezone.utc))
             db.session.add(cart)
-            db.session.commit()
+            safe_commit()
 
         cart_item = CartItem.query.filter_by(cart_id=cart.id, box_id=box.id).first()
 
@@ -748,7 +748,7 @@ def add_to_cart():
             )
             db.session.add(cart_item)
 
-        db.session.commit()
+        safe_commit()
 
     # Guest user (session-based)
     else:
@@ -786,7 +786,7 @@ def remove_cart_item(item_id):
     if item.cart.user_id != current_user.id:
         abort(403)
     db.session.delete(item)
-    db.session.commit()
+    safe_commit()
     flash('Item removed from cart.')
     return redirect(url_for('cart'))
 
@@ -1031,7 +1031,7 @@ def payment_success():
     for item in cart.items:
         db.session.delete(item)
 
-    db.session.commit()
+    safe_commit()
 
     # Queue invoice
     try:
@@ -1041,7 +1041,7 @@ def payment_success():
             arg2=order.user.email
         )
         db.session.add(new_task)
-        db.session.commit()
+        safe_commit()
     except Exception as e:
         print(f"[Invoice Queue Error]: {e}")
         flash("Order complete, but invoice could not be queued for email.", "warning")
@@ -1111,7 +1111,7 @@ def logout():
 def soft_delete_product(product_id):
     product = ProductService.get_product_by_id(product_id)
     product.is_active = False  # Soft delete
-    db.session.commit()
+    safe_commit()
     flash(f"Product '{product.name}' was soft deleted (hidden).", "warning")
     return redirect(url_for('admin_products'))
 
@@ -1128,7 +1128,7 @@ def hard_delete_product(product_id):
         return redirect(url_for('admin_products'))
 
     db.session.delete(product)
-    db.session.commit()
+    safe_commit()
     flash(f"Product '{product.name}' was permanently deleted.", "success")
     return redirect(url_for('admin_products'))
 
@@ -1192,7 +1192,7 @@ def add_tracking(order_id):
 
     if form.validate_on_submit():
         order.tracking_number = form.tracking_code.data
-        db.session.commit()
+        safe_commit()
 
         # Add task to DB instead of calling Celery
         new_task = Tasks(
@@ -1202,7 +1202,7 @@ def add_tracking(order_id):
             arg3=order.tracking_number
         )
         db.session.add(new_task)
-        db.session.commit()
+        safe_commit()
 
         flash("Tracking number added and task queued for sending email.", "success")
         return redirect(url_for('admin'))
@@ -1221,7 +1221,7 @@ def create_shipment():
             transit_cost=form.transit_cost.data,
         )
         db.session.add(shipment)
-        db.session.commit()
+        safe_commit()
 
         flash("Shipment created — now add boxes!", "success")
         return redirect(url_for("add_box_to_shipment", shipment_id=shipment.id))
@@ -1255,7 +1255,7 @@ def add_box_to_shipment(shipment_id):
             dynamic_pricing_enabled=form.dynamic_pricing_enabled.data
         )
         db.session.add(box)
-        db.session.commit()
+        safe_commit()
 
         flash("Box added to shipment!", "success")
         return redirect(url_for("add_box_to_shipment", shipment_id=shipment.id, products=products))
@@ -1328,7 +1328,7 @@ def mark_shipment_arrived(shipment_id):
             box.floor_price_inr_unit = round(cost_per_bar_inr * 0.8, 2)  # 80% of cost
             box.price_inr_unit = round(cost_per_bar_inr * 1.15, 2)  # 15% margin
 
-        db.session.commit()
+        safe_commit()
         flash(f"Shipment #{shipment.id} marked as arrived.", "success")
         return redirect(url_for("view_shipments"))
 
@@ -1406,7 +1406,7 @@ def create_product():
         )
 
         db.session.add(new_product)
-        db.session.commit()
+        safe_commit()
 
         flash('Product created!')
         return redirect(url_for('home'))
@@ -1513,7 +1513,7 @@ def admin_edit_product(product_id):
 
         product.tags = tag_objects
 
-        db.session.commit()
+        safe_commit()
         return redirect(url_for('admin_products'))
 
     return render_template('Admin/admin_products_edit.html', form=form, product=product)
@@ -1529,7 +1529,7 @@ def admin_add_product(product_id):
         product.quantity += form.quantity.data
         product.expiration_date = form.expiry_date.data
         product.floor_price = form.floor_price.data
-        db.session.commit()
+        safe_commit()
         return redirect(url_for('admin_products'))
 
     return render_template('Admin/admin_products_add.html', form=form, product=product)
@@ -1541,7 +1541,7 @@ def admin_add_product(product_id):
 def activate_product(product_id):
     product = ProductService.get_product_by_id(product_id)
     product.is_active = True
-    db.session.commit()
+    safe_commit()
     flash(f"Product '{product.name}' activated.", "success")
     return redirect(request.referrer or url_for('admin_products'))
 
