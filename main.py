@@ -133,14 +133,10 @@ def run_task():
     simple_task.delay()
     return "Task queued!"
 
-
-
-
-
-
-
-def get_user_cart(user_id):
-    return Cart.query.filter_by(user_id=user_id).first()
+def get_user_cart_cached(user_id):
+    if not hasattr(g, 'cart'):
+        g.cart = Cart.query.options(joinedload(Cart.items)).filter_by(user_id=user_id).first()
+    return g.cart
 
 
 def admin_only(f):
@@ -542,7 +538,7 @@ def register():
         # ✅ Merge guest basket into DB cart
         basket = session.get('basket', [])
         if basket:
-            cart = get_user_cart(new_user.id)
+            cart = get_user_cart_cached(new_user.id)
             if not cart:
                 cart = Cart(user_id=new_user.id, created_at=datetime.now(timezone.utc))
                 db.session.add(cart)
@@ -574,7 +570,7 @@ def login():
         # ✅ Merge guest basket into DB cart on login
         basket = session.get('basket', [])
         if basket:
-            cart = get_user_cart(current_user.id)
+            cart = get_user_cart_cached(current_user.id)
             if not cart:
                 cart = Cart(user_id=current_user.id, created_at=datetime.now(timezone.utc))
                 db.session.add(cart)
@@ -727,7 +723,7 @@ def add_to_cart():
 
     # Logged-in user
     if current_user.is_authenticated:
-        cart = get_user_cart(current_user.id)
+        cart = get_user_cart_cached(current_user.id)
         if not cart:
             cart = Cart(user_id=current_user.id, created_at=datetime.now(timezone.utc))
             db.session.add(cart)
@@ -801,7 +797,7 @@ def cart():
     total = 0
 
     if current_user.is_authenticated:
-        cart = get_user_cart(current_user.id)
+        cart = get_user_cart_cached(current_user.id)
         if cart and cart.items:
             for ci in cart.items:
                 # Fail early if the box is missing
@@ -852,7 +848,7 @@ def admin_cart():
     if not current_user.admin:
         abort(403)
     if current_user.is_authenticated:
-        cart = get_user_cart(current_user.id)
+        cart = get_user_cart_cached(current_user.id)
         items = []
         total = 0
         for ci in cart.items if cart and cart.items else []:
@@ -884,7 +880,7 @@ def admin_cart():
 @app.route('/checkout', methods=['POST', 'GET'])
 @login_required
 def checkout():
-    cart = get_user_cart(current_user.id)
+    cart = get_user_cart_cached(current_user.id)
 
     if not cart or not cart.items:
         flash("Your cart is empty.", "warning")
@@ -909,7 +905,7 @@ def checkout():
 @app.route('/cart-data')
 @login_required
 def cart_data():
-    cart = get_user_cart(current_user.id)
+    cart = get_user_cart_cached(current_user.id)
     if not cart or not cart.items:
         data = {'items': [], 'total': 0}
     else:
