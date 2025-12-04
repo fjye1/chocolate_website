@@ -387,6 +387,7 @@ def product_detail(product_id):
     )
 
     similar_products = results[1:4]
+    similar_products = precompute_products(similar_products)
 
     comment_form = CommentForm()
     # Only boxes that have arrived and still have stock
