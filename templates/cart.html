@@ -9,10 +9,12 @@
         <img src="/{{ item.product.image }}" alt="{{ item.product.name }}"
              style="width: 100px; height: 100px; object-fit: cover; border-radius: 5px;">
 
+
         {{ item.product.name }} – Quantity: {{ item.quantity }} – ₹{{ '%.2f' % (item.price * item.quantity) }}
 
         {% if item.cart_item_id %}
-        <form action="{{ url_for('remove_cart_item', item_id=item.cart_item_id) }}" method="POST" style="display:inline;">
+        <form action="{{ url_for('remove_cart_item', item_id=item.cart_item_id) }}" method="POST"
+              style="display:inline;">
             <button type="submit" class="btn btn-sm btn-danger" style="padding: 0 6px; font-weight: bold;">X</button>
         </form>
         {% endif %}
