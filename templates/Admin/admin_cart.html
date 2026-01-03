@@ -6,8 +6,7 @@
 <ul style="list-style: none; padding: 0;">
     {% for item in items %}
     <li style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;" data-product-id="{{ item.product.id }}">
-        <img src="/{{ item.product.image }}" alt="{{ item.product.name }}">
-
+        <img src="/{{ item.product.image }}" alt="{{ item.product.name }}"
              style="width: 100px; height: 100px; object-fit: cover; border-radius: 5px;">
 
         <strong>{{ item.product.name }}</strong> – 
