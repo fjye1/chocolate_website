@@ -6,7 +6,7 @@
 <ul>
     {% for item in items %}
     <li style="display: flex; align-items: center; gap: 10px;">
-        <img src="{{ url_for('static', filename=item.product.image) }}" alt="{{ item.product.name }}"
+        <img src="/{{ item.product.image }}" alt="{{ item.product.name }}"
              style="width: 100px; height: 100px; object-fit: cover; border-radius: 5px;">
 
         {{ item.product.name }} – Quantity: {{ item.quantity }} – ₹{{ '%.2f' % (item.price * item.quantity) }}

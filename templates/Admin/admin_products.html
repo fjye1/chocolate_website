@@ -30,7 +30,7 @@
     <tbody>
     {% for product in products %}
     <tr>
-        <td><img src="{{ url_for('static', filename=product.image) }}" width="100"></td>
+        <td><img src="/{{ product.image }}" width="100"></td>
         <td>{{ product.name }}</td>
         <td>₹{{ "%.2f"|format(product.avg_price) }}</td>
         <td>{{ "Yes" if product.has_active_boxes else "No" }}</td>
