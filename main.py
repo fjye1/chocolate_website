@@ -1421,7 +1421,8 @@ def create_product():
             ext = os.path.splitext(image_file.filename)[1].lower()
             # generate stable filename for original
             image_filename = f"{uuid.uuid4()}{ext}"
-            save_dir = os.path.join(current_app.root_path, 'static', 'images', 'choc')
+            UPLOAD_ROOT = "/var/www/uploads"
+            save_dir = os.path.join(UPLOAD_ROOT, "choc")
             os.makedirs(save_dir, exist_ok=True)
             image_path = os.path.join(save_dir, image_filename)
             image_file.save(image_path)
@@ -1451,8 +1452,8 @@ def create_product():
                     pdf_friendly_filename = image_filename
 
         # Build relative paths stored in DB (same convention you're already using)
-        rel_image = f"images/choc/{image_filename}" if image_filename else None
-        rel_pdf_image = f"images/choc/{pdf_friendly_filename}" if pdf_friendly_filename else None
+        rel_image = f"uploads/choc/{image_filename}" if image_filename else None
+        rel_pdf_image = f"uploads/choc/{pdf_friendly_filename}" if pdf_friendly_filename else None
 
         new_product = Product(
             name=form.name.data,
