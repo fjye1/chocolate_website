@@ -47,9 +47,10 @@
                 {% for item in order.order_items %}
                 <tr>
                     <td class="text-center">
-                        <img src="{{ url_for('static', filename=item.product.pdf_image, _external=True) }}"
+                        <img src="/{{ item.product.pdf_image }}"
                              alt="{{ item.product.name }}"
                              class="img-thumbnail" style="max-width:100px; height:100px; object-fit:cover;">
+
                     </td>
                     <td>{{ item.product.name }}</td>
                     <td class="text-center">{{ item.box_id }}</td>
