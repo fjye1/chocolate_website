@@ -1039,84 +1039,165 @@ def create_payment_intent():
 @login_required
 def payment_success():
     payment_intent_id = request.args.get("payment_intent")
+
     if not payment_intent_id:
         flash("Payment info missing.", "danger")
         return redirect(url_for('home'))
 
-    intent = stripe.PaymentIntent.retrieve(payment_intent_id)
-    if intent.status != "succeeded":
-        flash("Payment not completed.", "danger")
-        return redirect(url_for('payment_failure'))
+    # Try to find existing order first
+    order = Orders.query.filter_by(
+        payment_intent_id=payment_intent_id,
+        user_id=current_user.id
+    ).first()
 
-    cart = Cart.query.filter_by(user_id=current_user.id).first()
-    if not cart or not cart.items:
-        flash("Your cart is empty.", "warning")
-        return redirect(url_for('home'))
+    # If no order exists, process it now (backward compatibility)
+    if not order:
+        order, error = process_paid_order(payment_intent_id, current_user.id)
+        if error:
+            flash(error, "danger")
+            return redirect(url_for('payment_failure'))
+        flash("Payment successful! Order placed.", "success")
+    else:
+        # Order already processed by webhook
+        flash("Order confirmed!", "success")
 
-    shipping_address = Address.query.filter_by(user_id=current_user.id, current_address=True).first()
-    billing_address = Address.query.filter_by(user_id=current_user.id, current_address=True).first()
-
-    if not shipping_address or not billing_address:
-        flash("Missing address info.", "danger")
-        return redirect(url_for('checkout'))
-
-    order_id = f"ORD{int(datetime.now(timezone.utc).timestamp())}"
-
-    # Total uses CartItem.price (box-specific)
-    total_amount = sum(float(item.price) * item.quantity for item in cart.items)
-
-    order = Orders(
-        order_id=order_id,
-        user_id=current_user.id,
-        status="paid",
-        total_amount=total_amount,
-        payment_method="test_mode",
-        shipping_address=shipping_address,
-        billing_address=billing_address
-    )
-    db.session.add(order)
-
-    for item in cart.items:
-        order_item = OrderItem(
-            order=order,
-            product_id=item.product_id,  # Product, not box
-            box_id=item.box_id,
-            shipment_id=item.shipment_id,
-            quantity=item.quantity,
-            price_at_purchase=float(item.price)
-        )
-        db.session.add(order_item)
-
-        # Adjust stock on the box, not the product
-        # Update sold_today for the box, not product
-        if item.box:
-            item.box.sold_today = (item.box.sold_today or 0) + item.quantity
-            item.box.quantity -= item.quantity
-            if item.box.quantity <= 0:
-                item.box.is_active = False
-
-    # Clear cart items
-    for item in cart.items:
-        db.session.delete(item)
-
-    safe_commit()
-
-    # Queue invoice
-    try:
-        new_task = Tasks(
-            task_name="send_invoice",
-            arg1=order.order_id,
-            arg2=order.user.email
-        )
-        db.session.add(new_task)
-        safe_commit()
-    except Exception as e:
-        print(f"[Invoice Queue Error]: {e}")
-        flash("Order complete, but invoice could not be queued for email.", "warning")
-
-    flash("Payment successful! Order placed.", "success")
+    # Clean the URL to remove sensitive parameters
     return render_template('payment_success.html', order=order)
 
+def process_paid_order(payment_intent_id, user_id):
+    """
+    Creates an order after payment is confirmed.
+    Returns (order, error_message)
+    """
+    try:
+        # Verify payment
+        intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+        if intent.status != "succeeded":
+            return None, "Payment not completed"
+
+        # Get user's cart
+        cart = Cart.query.filter_by(user_id=user_id).first()
+        if not cart or not cart.items:
+            return None, "Cart is empty"
+
+        # Get addresses
+        shipping_address = Address.query.filter_by(user_id=user_id, current_address=True).first()
+        billing_address = Address.query.filter_by(user_id=user_id, current_address=True).first()
+
+        if not shipping_address or not billing_address:
+            return None, "Missing address info"
+
+        # Check if order already exists for this payment_intent
+        existing_order = Orders.query.filter_by(payment_intent_id=payment_intent_id).first()
+        if existing_order:
+            print(f"Order already exists for payment_intent {payment_intent_id}")
+            return existing_order, None
+
+        order_id = f"ORD{int(datetime.now(timezone.utc).timestamp())}"
+        total_amount = sum(float(item.price) * item.quantity for item in cart.items)
+        payment_method = "live" if intent.livemode else "test"
+
+        # Create order
+        order = Orders(
+            order_id=order_id,
+            user_id=user_id,
+            status="paid",
+            total_amount=total_amount,
+            payment_method=payment_method,
+            payment_intent_id=payment_intent_id,  # IMPORTANT: Store this!
+            shipping_address=shipping_address,
+            billing_address=billing_address
+        )
+        db.session.add(order)
+
+        # Create order items and adjust stock
+        for item in cart.items:
+            order_item = OrderItem(
+                order=order,
+                product_id=item.product_id,
+                box_id=item.box_id,
+                shipment_id=item.shipment_id,
+                quantity=item.quantity,
+                price_at_purchase=float(item.price)
+            )
+            db.session.add(order_item)
+
+            if item.box:
+                item.box.sold_today = (item.box.sold_today or 0) + item.quantity
+                item.box.quantity -= item.quantity
+                if item.box.quantity <= 0:
+                    item.box.is_active = False
+
+        # Clear cart
+        for item in cart.items:
+            db.session.delete(item)
+
+        safe_commit()
+
+        # Queue invoice
+        try:
+            new_task = Tasks(
+                task_name="send_invoice",
+                arg1=order.order_id,
+                arg2=order.user.email
+            )
+            db.session.add(new_task)
+            safe_commit()
+        except Exception as e:
+            print(f"[Invoice Queue Error]: {e}")
+
+        return order, None
+
+    except Exception as e:
+        print(f"[Order Processing Error]: {e}")
+        db.session.rollback()
+        return None, str(e)
+
+
+@app.route('/webhook', methods=['POST'])
+def stripe_webhook():
+    payload = request.data
+    sig_header = request.headers.get('Stripe-Signature')
+
+    # Get this from Stripe Dashboard -> Webhooks
+
+    endpoint_secret = os.getenv["ENDPOINT_SECRET"]
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, endpoint_secret
+        )
+    except ValueError:
+        print("Invalid webhook payload")
+        return 'Invalid payload', 400
+    except stripe.error.SignatureVerificationError:
+        print("Invalid webhook signature")
+        return 'Invalid signature', 400
+
+    # Handle payment success
+    if event['type'] == 'payment_intent.succeeded':
+        payment_intent = event['data']['object']
+        payment_intent_id = payment_intent['id']
+
+        # Get user_id from metadata (we'll add this in Step 8)
+        user_id = payment_intent.get('metadata', {}).get('user_id')
+
+        if not user_id:
+            print(f"No user_id in payment_intent {payment_intent_id}")
+            return 'Missing user_id', 400
+
+        print(f"Processing order for payment_intent {payment_intent_id}, user {user_id}")
+
+        order, error = process_paid_order(payment_intent_id, int(user_id))
+
+        if error:
+            print(f"Error processing order: {error}")
+            # Don't return error - webhook will retry
+            # Log it for manual review
+        else:
+            print(f"Order {order.order_id} created successfully via webhook")
+
+    return 'Success', 200
 
 @app.route('/invoice/<string:order_id>')
 @login_required

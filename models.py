@@ -337,6 +337,7 @@ class Orders(db.Model):
     tracking_number = db.Column(db.String(50))
     created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, onupdate=func.now())
+    payment_intent_id = db.Column(db.String(255), unique=True, nullable=True)
 
 
 class OrderItem(db.Model):
