@@ -47,7 +47,7 @@
                 {% for item in order.order_items %}
                 <tr>
                     <td class="text-center">
-                        <img src="/{{ item.product.pdf_image }}"
+                        <img src="{{ request.url_root.rstrip('/') }}/{{ item.product.pdf_image }}"
                              alt="{{ item.product.name }}"
                              class="img-thumbnail" style="max-width:100px; height:100px; object-fit:cover;">
 
