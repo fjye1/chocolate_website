@@ -338,6 +338,7 @@ class Orders(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, onupdate=func.now())
     payment_intent_id = db.Column(db.String(255), unique=True, nullable=True)
+    invoice_path = db.Column(db.String(255), nullable=True)
 
 
 class OrderItem(db.Model):
