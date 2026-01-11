@@ -1207,7 +1207,7 @@ def invoice(order_id):
 
 def internal_auth():
     auth = request.headers.get("Authorization")
-    if auth != f"Bearer {os.getenv('SECRET')}":
+    if auth != f"Bearer {os.getenv('INTERNAL_API_TOKEN')}":
         abort(403)
 
 @app.route('/internal-invoice/<string:order_id>')
@@ -1217,13 +1217,8 @@ def internal_invoice(order_id):
     order = Orders.query.filter_by(order_id=order_id).first_or_404()
     return render_template('invoice.html', order=order)
 
-@app.route('/internal-invoice/<string:order_id>/json')
-def internal_invoice_json(order_id):
-    internal_auth()
-
-    order = Orders.query.filter_by(order_id=order_id).first_or_404()
-
-    return jsonify({
+def serialize_order(order, url_root):
+    return {
         "order_id": order.order_id,
         "created_at": order.created_at.isoformat(),
         "created_at_formatted": order.created_at.strftime('%b %d, %Y'),
@@ -1239,7 +1234,7 @@ def internal_invoice_json(order_id):
         "items": [
             {
                 "product_name": item.product.name,
-                "product_image": f"{request.url_root.rstrip('/')}/{item.product.pdf_image}",
+                "product_image": f"{url_root.rstrip('/')}/{item.product.pdf_image}",
                 "box_id": item.box_id,
                 "shipment_id": item.shipment_id,
                 "quantity": item.quantity,
@@ -1248,7 +1243,13 @@ def internal_invoice_json(order_id):
             }
             for item in order.order_items
         ]
-    })
+    }
+
+@app.route('/internal-invoice/<string:order_id>/json')
+def internal_invoice_json(order_id):
+    internal_auth()
+    order = Orders.query.filter_by(order_id=order_id).first_or_404()
+    return jsonify(serialize_order(order, request.url_root))
 
 
 
