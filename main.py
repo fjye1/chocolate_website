@@ -1225,19 +1225,28 @@ def internal_invoice_json(order_id):
 
     return jsonify({
         "order_id": order.order_id,
-        "total": order.total,
-        "created_at": order.created_at,
-        "customer": {
-            "name": order.customer_name,
-            "email": order.customer_email,
-        },
+        "created_at": order.created_at.isoformat(),
+        "created_at_formatted": order.created_at.strftime('%b %d, %Y'),
+        "status": order.status,
+        "total_amount": float(order.total_amount),
+
+        "shipping_address": {
+            "street": order.shipping_address.street,
+            "city": order.shipping_address.city,
+            "postcode": order.shipping_address.postcode,
+        } if order.shipping_address else None,
+
         "items": [
             {
-                "name": item.name,
-                "qty": item.quantity,
-                "price": item.price
+                "product_name": item.product.name,
+                "product_image": f"{request.url_root.rstrip('/')}/{item.product.pdf_image}",
+                "box_id": item.box_id,
+                "shipment_id": item.shipment_id,
+                "quantity": item.quantity,
+                "price_at_purchase": float(item.price_at_purchase),
+                "line_total": float(item.quantity * item.price_at_purchase),
             }
-            for item in order.items
+            for item in order.order_items
         ]
     })
 
