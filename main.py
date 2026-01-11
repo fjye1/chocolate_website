@@ -1205,13 +1205,42 @@ def invoice(order_id):
     order = Orders.query.filter_by(order_id=order_id, user_id=current_user.id).first_or_404()
     return render_template('invoice.html', order=order)
 
-
-@app.route('/internal-invoice/<string:order_id>/<string:secret>')
-def internal_invoice(order_id, secret):
-    if secret != os.getenv("SECRET"):
+def internal_auth():
+    auth = request.headers.get("Authorization")
+    if auth != f"Bearer {os.getenv('SECRET')}":
         abort(403)
+
+@app.route('/internal-invoice/<string:order_id>')
+def internal_invoice(order_id):
+    internal_auth()
+
     order = Orders.query.filter_by(order_id=order_id).first_or_404()
     return render_template('invoice.html', order=order)
+
+@app.route('/internal-invoice/<string:order_id>/json')
+def internal_invoice_json(order_id):
+    internal_auth()
+
+    order = Orders.query.filter_by(order_id=order_id).first_or_404()
+
+    return jsonify({
+        "order_id": order.order_id,
+        "total": order.total,
+        "created_at": order.created_at,
+        "customer": {
+            "name": order.customer_name,
+            "email": order.customer_email,
+        },
+        "items": [
+            {
+                "name": item.name,
+                "qty": item.quantity,
+                "price": item.price
+            }
+            for item in order.items
+        ]
+    })
+
 
 
 @app.route('/payment-failure')
