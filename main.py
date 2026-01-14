@@ -48,7 +48,7 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 # Database configuration
 # TODO the section of code below is to link you to the render
 #  Database it won't work if you don't have a render database set up
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("RENDER_DATABASE_URL2")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_INDIA")
 # this is the local database for app development only — use if in offline_db branch
 # app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 
