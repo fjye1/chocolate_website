@@ -492,7 +492,8 @@ def product_detail(slug):
         )
         db.session.add(new_comment)
         safe_commit()
-        return redirect(url_for('product_detail', product_id=product_id))
+        return redirect(url_for('product_detail', slug=product.slug))
+
 
     start_date = date.today() - timedelta(days=28)
 
