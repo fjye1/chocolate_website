@@ -1,5 +1,32 @@
 {% extends "base.html" %}
 {% block content %}
 
-Hello world this is a about page
+<section class="about">
+    <h1>About Us</h1>
+
+    <p>
+        We're a small business based in Navsari bringing popular British chocolates
+        to your doorstep. No frills, no fuss — just the brands you've heard about,
+        delivered locally.
+    </p>
+
+    <p>
+        We source our chocolates directly from the UK, so you're getting the real
+        thing. Not luxury, not imitation — just genuine British products available
+        right here in India.
+    </p>
+
+    <p>
+        We price our stock dynamically, which means our prices stay fair and
+        competitive and we rarely sit on unsold stock. If you spot something you
+        like, it's worth grabbing it while it's available.
+    </p>
+
+    <p>
+        "Don't see what you're looking for? We're always open to requests. If there's a specific British chocolate or
+        brand you'd love to get your hands on, drop us a message via our <a href="{{ url_for('contact') }}"> Contact
+        Us </a> page and we'll do our best to source
+        it for you."
+    </p>
+</section>
 {% endblock %}
