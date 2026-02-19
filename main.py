@@ -1073,52 +1073,46 @@ def payment_success():
 
 
 def process_paid_order(payment_intent_id, user_id):
-    """
-    Creates an order after payment is confirmed.
-    Returns (order, error_message)
-    """
     try:
-        # Verify payment
         intent = stripe.PaymentIntent.retrieve(payment_intent_id)
         if intent.status != "succeeded":
             return None, "Payment not completed"
 
-        # Get user's cart
         cart = Cart.query.filter_by(user_id=user_id).first()
         if not cart or not cart.items:
             return None, "Cart is empty"
 
-        # Get addresses
         shipping_address = Address.query.filter_by(user_id=user_id, current_address=True).first()
         billing_address = Address.query.filter_by(user_id=user_id, current_address=True).first()
-
         if not shipping_address or not billing_address:
             return None, "Missing address info"
 
-        # Check if order already exists for this payment_intent
         existing_order = Orders.query.filter_by(payment_intent_id=payment_intent_id).first()
         if existing_order:
-            print(f"Order already exists for payment_intent {payment_intent_id}")
             return existing_order, None
 
         order_id = f"ORD{int(datetime.now(timezone.utc).timestamp())}"
-        total_amount = sum(float(item.price) * item.quantity for item in cart.items)
+
+        # ✅ NEW: calculate full totals properly
+        totals = calculate_order_totals(cart.items)
+
         payment_method = "live" if intent.livemode else "test"
 
-        # Create order
         order = Orders(
             order_id=order_id,
             user_id=user_id,
             status="paid",
-            total_amount=total_amount,
+            subtotal=totals["subtotal"],
+            shipping=totals["shipping"],
+            card_fee=totals["card_fee"],
+            total_amount=totals["grand_total"],
             payment_method=payment_method,
-            payment_intent_id=payment_intent_id,  # IMPORTANT: Store this!
+            payment_intent_id=payment_intent_id,
             shipping_address=shipping_address,
             billing_address=billing_address
         )
         db.session.add(order)
 
-        # Create order items and adjust stock
         for item in cart.items:
             order_item = OrderItem(
                 order=order,
@@ -1136,13 +1130,11 @@ def process_paid_order(payment_intent_id, user_id):
                 if item.box.quantity <= 0:
                     item.box.is_active = False
 
-        # Clear cart
         for item in cart.items:
             db.session.delete(item)
 
         safe_commit()
 
-        # Queue invoice
         try:
             new_task = Tasks(
                 task_name="send_invoice",
@@ -1235,7 +1227,11 @@ def serialize_order(order, url_root):
         "created_at": order.created_at.isoformat(),
         "created_at_formatted": order.created_at.strftime('%b %d, %Y'),
         "status": order.status,
-        "total_amount": float(order.total_amount),
+
+        "subtotal": float(order.subtotal),
+        "shipping": float(order.shipping),
+        "card_fee": float(order.card_fee),
+        "grand_total": float(order.total_amount),
 
         "shipping_address": {
             "street": order.shipping_address.street,

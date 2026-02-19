@@ -80,7 +80,24 @@
     <!-- Totals -->
     <div class="d-flex justify-content-end">
         <div class="p-3 border rounded shadow-sm bg-light">
-            <h5 class="mb-0">Total: <strong>&#8377;{{ '%.2f' % order.total_amount }}</strong></h5>
+            <table class="table table-sm mb-0">
+                <tr>
+                    <td>Subtotal</td>
+                    <td class="text-end">&#8377;{{ '%.2f' % order.subtotal }}</td>
+                </tr>
+                <tr>
+                    <td>Shipping</td>
+                    <td class="text-end">&#8377;{{ '%.2f' % order.shipping }}</td>
+                </tr>
+                <tr>
+                    <td>Card fee</td>
+                    <td class="text-end">&#8377;{{ '%.2f' % order.card_fee }}</td>
+                </tr>
+                <tr>
+                    <th>Total</th>
+                    <th class="text-end">&#8377;{{ '%.2f' % order.total_amount }}</th>
+                </tr>
+            </table>
         </div>
     </div>
 </div>
