@@ -63,55 +63,52 @@
     {% endif %}
 </div>
 <script>
-    let stripe, elements, paymentElement;
+let stripe, elements, paymentElement;
 
-    fetch('/cart-data')
-      .then(res => res.json())
-      .then(data => {
-        const amount = Math.round(data.total * 100); // pence for Stripe
-        const cart = data.items;
+fetch('/cart-data')
+  .then(res => res.json())
+  .then(data => {
+    const cart = data.items;
 
-        return fetch('/create-payment-intent', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ amount: amount, cart: cart })
-        });
-      })
-      .then(res => res.json())
-      .then(({ clientSecret }) => {
-
-        stripe = Stripe('pk_test_51RTLGdIB4LlFizy67MEzJaNLjWUUuzK0gjjz8cFImGmLnZ4ka468OHpf1dhQg7b25Hm180PfPh16BPEhVwq9Wcu100563RRNWV')
-
-
-        const appearance = { theme: 'flat' };
-        const options = {
-          clientSecret: clientSecret,
-          appearance: appearance
-        };
-
-        elements = stripe.elements(options);
-        paymentElement = elements.create('payment');
-        paymentElement.mount('#payment-element');
-      });
-
-    const form = document.getElementById('payment-form');
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      document.getElementById('submit').disabled = true;
-
-      const { error } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: window.location.origin + '/success'
-        },
-      });
-
-      if (error) {
-        document.getElementById('payment-message').textContent = error.message;
-        document.getElementById('submit').disabled = false;
-      }
+    return fetch('/create-payment-intent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cart: cart })  // ✅ no amount anymore
     });
+  })
+  .then(res => res.json())
+  .then(({ clientSecret }) => {
 
+    stripe = Stripe('pk_test_51RTLGdIB4LlFizy67MEzJaNLjWUUuzK0gjjz8cFImGmLnZ4ka468OHpf1dhQg7b25Hm180PfPh16BPEhVwq9Wcu100563RRNWV');
+
+    const appearance = { theme: 'flat' };
+    const options = {
+      clientSecret: clientSecret,
+      appearance: appearance
+    };
+
+    elements = stripe.elements(options);
+    paymentElement = elements.create('payment');
+    paymentElement.mount('#payment-element');
+  });
+
+const form = document.getElementById('payment-form');
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  document.getElementById('submit').disabled = true;
+
+  const { error } = await stripe.confirmPayment({
+    elements,
+    confirmParams: {
+      return_url: window.location.origin + '/success'
+    },
+  });
+
+  if (error) {
+    document.getElementById('payment-message').textContent = error.message;
+    document.getElementById('submit').disabled = false;
+  }
+});
 </script>
 </body>
 </html>

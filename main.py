@@ -1006,17 +1006,17 @@ def create_payment_intent():
     print('Received data for PaymentIntent:', data)
 
     cart_items = data.get('cart', [])
-    amount = 0
-    for item in cart_items:
-        # Ensure we use the box-specific price
-        price = item.get('price', 0)
-        quantity = item.get('quantity', 0)
-        try:
-            price_paise = int(round(float(price) * 100))  # INR smallest unit
-            qty = int(quantity)
-            amount += price_paise * qty
-        except (ValueError, TypeError):
-            return jsonify({'error': 'Invalid price or quantity in cart'}), 400
+
+    if not cart_items:
+        return jsonify({'error': 'Cart is empty'}), 400
+
+    # 🔥 use your new totals function
+    totals = calculate_order_totals(cart_items)
+
+    try:
+        amount = int(round(float(totals["grand_total"]) * 100))  # convert to paise
+    except (ValueError, TypeError, KeyError):
+        return jsonify({'error': 'Invalid total amount'}), 400
 
     if amount <= 0:
         return jsonify({'error': 'Invalid total amount'}), 400
@@ -1028,8 +1028,12 @@ def create_payment_intent():
         amount=amount,
         currency='inr',
         metadata={
-            'user_id': str(current_user.id),  # must be string
-            'cart': cart_str
+            'user_id': str(current_user.id),
+            'cart': cart_str,
+            'subtotal': str(totals["subtotal"]),
+            'shipping': str(totals["shipping"]),
+            'card_fee': str(totals["card_fee"]),
+            'grand_total': str(totals["grand_total"]),
         },
         automatic_payment_methods={'enabled': True}
     )

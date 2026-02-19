@@ -212,22 +212,29 @@ CARD_FEE_PERCENT        = 5.25    # % card processing fee (applied to subtotal +
 # ──────────────────────────────────────────────────────────────────────────
 
 def calculate_order_totals(cart_items):
-    """
-    Returns a dict with subtotal, shipping, card_fee, and grand_total.
-    Card fee is applied to subtotal + shipping.
-    Shipping is free on orders over SHIPPING_FREE_THRESHOLD.
-    """
-    subtotal = sum(float(item.price) * item.quantity for item in cart_items)
+    subtotal = 0
+
+    for item in cart_items:
+        # support dicts (JSON) and objects (DB)
+        if isinstance(item, dict):
+            price = float(item["price"])
+            quantity = int(item["quantity"])
+        else:
+            price = float(item.price)
+            quantity = int(item.quantity)
+
+        subtotal += price * quantity
+
     shipping = 0 if subtotal >= SHIPPING_FREE_THRESHOLD else SHIPPING_FEE
     card_fee = round(CARD_FEE_FIXED + (subtotal + shipping) * (CARD_FEE_PERCENT / 100), 2)
     grand_total = round(subtotal + shipping + card_fee, 2)
 
     return {
-        "subtotal":     round(subtotal, 2),
-        "shipping":     shipping,
+        "subtotal": round(subtotal, 2),
+        "shipping": shipping,
         "free_shipping": subtotal >= SHIPPING_FREE_THRESHOLD,
-        "card_fee":     card_fee,
-        "grand_total":  grand_total,
+        "card_fee": card_fee,
+        "grand_total": grand_total,
     }
 
 # @staticmethod
