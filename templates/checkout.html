@@ -12,7 +12,32 @@
 </style>
 </head>
 <body>
-<h2>Pay ₹{{ '%.2f' | format(total) }}</h2>
+<h2>Pay ₹{{ '%.2f' | format(totals.grand_total) }}</h2>
+
+<table>
+    <tr>
+        <td>Subtotal</td>
+        <td>₹{{ '%.2f' | format(totals.subtotal) }}</td>
+    </tr>
+    <tr>
+        <td>Shipping</td>
+        <td>
+            {% if totals.free_shipping %}
+            <span style="color: green;">Free</span>
+            {% else %}
+            ₹{{ '%.2f' | format(totals.shipping) }}
+            {% endif %}
+        </td>
+    </tr>
+    <tr>
+        <td>Card Fee</td>
+        <td>₹{{ '%.2f' | format(totals.card_fee) }}</td>
+    </tr>
+    <tr>
+        <td><strong>Total</strong></td>
+        <td><strong>₹{{ '%.2f' | format(totals.grand_total) }}</strong></td>
+    </tr>
+</table>
 {% if current_user.current_address %}
 <form id="payment-form">
     <div id="payment-element"></div>

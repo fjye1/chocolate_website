@@ -5,30 +5,30 @@ import json
 import os
 import threading
 import uuid
-from datetime import datetime, timedelta, timezone, date
+from datetime import timedelta, timezone, date
 from functools import wraps
 
 # Third-party imports
 import stripe
 from PIL import Image, UnidentifiedImageError
 from dotenv import load_dotenv
-from flask import Flask, render_template, redirect, url_for, flash, request, abort, jsonify, make_response, \
-    current_app, session, g
+from flask import Flask, render_template, redirect, flash, request, abort, jsonify, current_app, session, g
 from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
 from flask_gravatar import Gravatar
 from flask_login import LoginManager, login_user, current_user, login_required, logout_user, AnonymousUserMixin
+from slugify import slugify
 from sqlalchemy import func, literal, event
 from sqlalchemy.orm import joinedload
 from werkzeug.security import generate_password_hash, check_password_hash
 from xhtml2pdf import pisa
-from slugify import slugify
 
 # Local application imports
 from extension import db
 from forms import RegisterForm, LoginForm, AddAddress, ProductForm, CommentForm, StockForm, TrackingForm, \
     ShipmentSentForm, BoxForm, ShipmentArrivalForm, AddToCartForm
-from functions import update_dynamic_prices, ProductService, inr_to_gbp, gbp_to_inr, safe_commit, precompute_products,can_deliver_to
+from functions import update_dynamic_prices, ProductService, inr_to_gbp, gbp_to_inr, safe_commit, precompute_products, \
+    can_deliver_to, calculate_order_totals
 from models import Cart, CartItem, Address, User, Orders, Product, Tag, OrderItem, Comment, PriceAlert, \
     Tasks, Box, Shipment, SiteVisitCount
 from tasks import simple_task
@@ -183,9 +183,11 @@ def load_cart():
 def inject_cart():
     return dict(cart_items=g.cart_items)
 
+
 @app.context_processor
 def inject_now():
     return {'now': datetime.now(timezone.utc)}
+
 
 @app.route("/run_task", methods=["GET"])
 def run_task():
@@ -276,6 +278,7 @@ def toggle_dynamic_pricing(product_id):
     safe_commit()
     return redirect(request.referrer or url_for("admin_products"))
 
+
 @app.route("/")
 def home():
     if not session.get("portfolio_banner_shown"):
@@ -331,7 +334,8 @@ def home():
         user_alerts=user_alerts
     )
 
-#/<slug>
+
+# /<slug>
 @app.route('/product')
 def product_page():
     product_key = request.args.get('product')
@@ -496,7 +500,6 @@ def product_detail(slug):
         db.session.add(new_comment)
         safe_commit()
         return redirect(url_for('product_detail', slug=product.slug))
-
 
     start_date = date.today() - timedelta(days=28)
 
@@ -966,9 +969,8 @@ def checkout():
             return redirect(url_for('cart'))
 
     # Calculate total based on CartItem price (box-specific)
-    total = sum(float(item.price) * item.quantity for item in cart.items)
-
-    return render_template('checkout.html', total=total)
+    totals = calculate_order_totals(cart.items)
+    return render_template('checkout.html', totals=totals)
 
 
 @app.route('/cart-data')
@@ -1840,11 +1842,14 @@ def delivery():
                            delivery_fee=DELIVERY_FEE,
                            min_order=MIN_ORDER, )
 
+
 from flask import make_response, url_for
 from datetime import datetime
 
 # ─── Sitemap Configuration ─────────────────────────────────────────────────
 SITE_URL = "https://www.regalchocolate.in"  # no trailing slash
+
+
 # ──────────────────────────────────────────────────────────────────────────
 
 @app.route("/sitemap.xml")

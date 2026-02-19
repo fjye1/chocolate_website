@@ -203,6 +203,33 @@ def can_deliver_to(pincode: str) -> bool:
 
     return pincode.startswith(VALID_PREFIXES)
 
+
+# ─── Fee Configuration ────────────────────────────────────────────────────
+SHIPPING_FEE            = 99      # ₹ flat shipping fee
+SHIPPING_FREE_THRESHOLD = 500     # ₹ order value for free shipping
+CARD_FEE_FIXED          = 25      # ₹ fixed card processing fee
+CARD_FEE_PERCENT        = 5.25    # % card processing fee (applied to subtotal + shipping)
+# ──────────────────────────────────────────────────────────────────────────
+
+def calculate_order_totals(cart_items):
+    """
+    Returns a dict with subtotal, shipping, card_fee, and grand_total.
+    Card fee is applied to subtotal + shipping.
+    Shipping is free on orders over SHIPPING_FREE_THRESHOLD.
+    """
+    subtotal = sum(float(item.price) * item.quantity for item in cart_items)
+    shipping = 0 if subtotal >= SHIPPING_FREE_THRESHOLD else SHIPPING_FEE
+    card_fee = round(CARD_FEE_FIXED + (subtotal + shipping) * (CARD_FEE_PERCENT / 100), 2)
+    grand_total = round(subtotal + shipping + card_fee, 2)
+
+    return {
+        "subtotal":     round(subtotal, 2),
+        "shipping":     shipping,
+        "free_shipping": subtotal >= SHIPPING_FREE_THRESHOLD,
+        "card_fee":     card_fee,
+        "grand_total":  grand_total,
+    }
+
 # @staticmethod
 # def get_similar_products(product_id, limit=4):
 #     """Get products similar to the given product"""
