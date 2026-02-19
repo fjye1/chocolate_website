@@ -183,6 +183,9 @@ def load_cart():
 def inject_cart():
     return dict(cart_items=g.cart_items)
 
+@app.context_processor
+def inject_now():
+    return {'now': datetime.now(timezone.utc)}
 
 @app.route("/run_task", methods=["GET"])
 def run_task():
