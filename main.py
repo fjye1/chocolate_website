@@ -1806,6 +1806,27 @@ def admin_settings():
     return render_template("Admin/admin_settings.html")
 
 
+######### Footer links #########
+
+@app.route("/about")
+def about():
+    return render_template("Footerlinks/about.html")
+
+@app.route("/contact")
+def contact():
+    return render_template("Footerlinks/contact.html")
+
+
+@app.route("/delivery")
+def delivery():
+    return render_template("Footerlinks/delivery.html")
+
+
+
+
+
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))  # use Render's assigned port if available
     app.run(host="0.0.0.0", port=port, debug=True)
