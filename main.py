@@ -1861,10 +1861,10 @@ def sitemap():
         })
 
     # ── Product pages ─────────────────────────────────────────────────────
-    products = Product.query.filter_by().all()  # adjust filter if needed
+    products = Product.query.filter_by(is_active=True).all()
     for product in products:
         pages.append({
-            "loc": SITE_URL + url_for("product_page", product_id=product.id),  # adjust endpoint name
+            "loc": SITE_URL + url_for("product_detail", slug=product.slug),
             "priority": "0.9",
             "changefreq": "daily",
         })
@@ -1878,7 +1878,7 @@ def sitemap():
         xml.append(f"    <loc>{page['loc']}</loc>")
         xml.append(f"    <changefreq>{page['changefreq']}</changefreq>")
         xml.append(f"    <priority>{page['priority']}</priority>")
-        xml.append(f"    <lastmod>{datetime.utcnow().strftime('%Y-%m-%d')}</lastmod>")
+        xml.append(f"    <lastmod>{datetime.now(timezone.utc).strftime('%Y-%m-%d')}</lastmod>")
         xml.append("  </url>")
 
     xml.append("</urlset>")
