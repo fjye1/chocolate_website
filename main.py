@@ -3,12 +3,14 @@ import csv
 import io
 import json
 import os
+import threading
 import uuid
 from datetime import datetime, timedelta, timezone, date
 from functools import wraps
 
 # Third-party imports
 import stripe
+from PIL import Image, UnidentifiedImageError
 from dotenv import load_dotenv
 from flask import Flask, render_template, redirect, url_for, flash, request, abort, jsonify, make_response, \
     current_app, session, g
@@ -16,21 +18,18 @@ from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
 from flask_gravatar import Gravatar
 from flask_login import LoginManager, login_user, current_user, login_required, logout_user, AnonymousUserMixin
-from PIL import Image, UnidentifiedImageError
-import pillow_avif  # plugin registers automatically when imported (no direct usage required)
 from sqlalchemy import func, literal, event
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import joinedload
 from werkzeug.security import generate_password_hash, check_password_hash
 from xhtml2pdf import pisa
-import threading
 
 # Local application imports
 from extension import db
 from forms import RegisterForm, LoginForm, AddAddress, ProductForm, CommentForm, StockForm, TrackingForm, \
     ShipmentSentForm, BoxForm, ShipmentArrivalForm, AddToCartForm
+from functions import update_dynamic_prices, ProductService, inr_to_gbp, gbp_to_inr, safe_commit, precompute_products
 from models import Cart, CartItem, Address, User, Orders, Product, Tag, OrderItem, Comment, PriceAlert, \
     Tasks, Box, Shipment, SiteVisitCount
-from functions import update_dynamic_prices, ProductService, inr_to_gbp, gbp_to_inr, safe_commit, precompute_products
 from tasks import simple_task
 
 # Load environment variables
@@ -95,11 +94,13 @@ with app.app_context():
         print(f"   Checked in: {pool.checkedin()}")
         print(f"   Total: {pool.size() + pool.overflow()}\n")
 
+
 @app.route('/test_pool')
 def test_pool():
     print_pool_status()
     # your database query here
     return "Check console"
+
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -175,6 +176,8 @@ def load_cart():
             ]
     else:
         g.cart_items = session.get('basket', [])
+
+
 @app.context_processor
 def inject_cart():
     return dict(cart_items=g.cart_items)
@@ -184,6 +187,7 @@ def inject_cart():
 def run_task():
     simple_task.delay()
     return "Task queued!"
+
 
 def get_user_cart_cached(user_id):
     if not hasattr(g, 'cart'):
@@ -223,6 +227,7 @@ gravatar = Gravatar(app,
                     force_lower=False,
                     use_ssl=False,
                     base_url=None)
+
 
 # # ✅ must be run before adding data
 # with app.app_context():
@@ -1064,6 +1069,7 @@ def payment_success():
     # Clean the URL to remove sensitive parameters
     return render_template('payment_success.html', order=order)
 
+
 def process_paid_order(payment_intent_id, user_id):
     """
     Creates an order after payment is confirmed.
@@ -1199,16 +1205,19 @@ def stripe_webhook():
 
     return 'Success', 200
 
+
 @app.route('/invoice/<string:order_id>')
 @login_required
 def invoice(order_id):
     order = Orders.query.filter_by(order_id=order_id, user_id=current_user.id).first_or_404()
     return render_template('invoice.html', order=order)
 
+
 def internal_auth():
     auth = request.headers.get("Authorization")
     if auth != f"Bearer {os.getenv('INTERNAL_API_TOKEN')}":
         abort(403)
+
 
 @app.route('/internal-invoice/<string:order_id>')
 def internal_invoice(order_id):
@@ -1216,6 +1225,7 @@ def internal_invoice(order_id):
 
     order = Orders.query.filter_by(order_id=order_id).first_or_404()
     return render_template('invoice.html', order=order)
+
 
 def serialize_order(order, url_root):
     return {
@@ -1245,12 +1255,12 @@ def serialize_order(order, url_root):
         ]
     }
 
+
 @app.route('/internal-invoice/<string:order_id>/json')
 def internal_invoice_json(order_id):
     internal_auth()
     order = Orders.query.filter_by(order_id=order_id).first_or_404()
     return jsonify(serialize_order(order, request.url_root))
-
 
 
 @app.route('/payment-failure')
@@ -1808,9 +1818,17 @@ def admin_settings():
 
 ######### Footer links #########
 
+# ─── Delivery Configuration ───────────────────────────────────────────────
+DELIVERY_FEE = 99  # ₹ — fee charged per delivery
+MIN_ORDER = 299  # ₹ — minimum order value to place an order
+
+
+# ──────────────────────────────────────────────────────────────────────────
+
 @app.route("/about")
 def about():
     return render_template("Footerlinks/about.html")
+
 
 @app.route("/contact")
 def contact():
@@ -1819,12 +1837,9 @@ def contact():
 
 @app.route("/delivery")
 def delivery():
-    return render_template("Footerlinks/delivery.html")
-
-
-
-
-
+    return render_template("Footerlinks/delivery.html",
+                           delivery_fee=DELIVERY_FEE,
+                           min_order=MIN_ORDER, )
 
 
 if __name__ == "__main__":
@@ -1842,4 +1857,3 @@ if __name__ == "__main__":
 
 "https://www.hancocks.co.uk/"
 "https://www.hswholesalesweets.co.uk/"
-

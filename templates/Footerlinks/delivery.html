@@ -1,5 +1,61 @@
 {% extends "base.html" %}
 {% block content %}
+<div class="container" style="margin:16px">
+    <div class="row">
+        <!-- Left box -->
+        <div class="col-md-6 mb-3">
+            <div class="p-3 border bg-light">
+                <h2>Delivery Information</h2>
 
-Hello world this is a delivery page
+                <p>
+                    We deliver our delicious chocolates across postal PIN codes starting with<strong> 39-40</strong>
+                    check the
+                    map to see if we deliver to you.
+                </p>
+
+                <p>
+                    Please note that deliveries to <strong>Goa</strong> Postal Pin codes starting with<strong>
+                    403</strong> are currently unavailable.
+                </p>
+
+                <p>
+                    A minimum order of <strong>₹{{ min_order }}</strong> applies, and a flat
+                    delivery fee of <strong>₹{{ delivery_fee }}</strong> will be added at
+                    checkout whether you're treating yourself to a single bar or stocking up
+                    on a full box.
+                </p>
+
+                <p>
+                    We pride ourselves on fast, reliable delivery so your chocolates arrive
+                    fresh and ready to enjoy.
+                </p>
+
+                <p>
+                    Don't see your area on the map?
+                    Reach out via our
+                    <a href="{{ url_for('contact') }}" > Contact Us </a>
+
+                    page,
+                    and we'll check availability for you.
+                </p>
+            </div>
+        </div>
+
+        <!-- Right box -->
+        <div class="col-md-6 mb-3">
+            <div class="p-3 border bg-light">
+                <iframe
+                        src="https://www.google.com/maps/d/embed?mid=1Lt_FQHe6t643zZlIX2MK3HgVYY08k8E&ehbc=2E312F"
+                        width="100%"
+                        height="480"
+                        style="border:0;"
+                        allowfullscreen=""
+                        loading="lazy"
+                        referrerpolicy="no-referrer-when-downgrade">
+                </iframe>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
+
