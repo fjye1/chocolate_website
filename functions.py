@@ -179,7 +179,26 @@ class ProductService:
         }
 
 
+# ─── Delivery Area Configuration ──────────────────────────────────────────
+VALID_PREFIXES   = ("39", "40")
+EXCLUDED_PREFIXES = ("403",)      # Goa — no delivery
+# ──────────────────────────────────────────────────────────────────────────
 
+def can_deliver_to(pincode: str) -> bool:
+    """
+    Returns True if we deliver to the given PIN code.
+    - Must start with 39 or 40
+    - Must NOT start with 403 (Goa)
+    """
+    pincode = pincode.strip()
+
+    if not pincode.isdigit() or len(pincode) != 6:
+        return False
+
+    if pincode.startswith(EXCLUDED_PREFIXES):
+        return False
+
+    return pincode.startswith(VALID_PREFIXES)
 
 # @staticmethod
 # def get_similar_products(product_id, limit=4):

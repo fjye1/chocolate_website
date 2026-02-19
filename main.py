@@ -27,7 +27,7 @@ from xhtml2pdf import pisa
 from extension import db
 from forms import RegisterForm, LoginForm, AddAddress, ProductForm, CommentForm, StockForm, TrackingForm, \
     ShipmentSentForm, BoxForm, ShipmentArrivalForm, AddToCartForm
-from functions import update_dynamic_prices, ProductService, inr_to_gbp, gbp_to_inr, safe_commit, precompute_products
+from functions import update_dynamic_prices, ProductService, inr_to_gbp, gbp_to_inr, safe_commit, precompute_products,can_deliver_to
 from models import Cart, CartItem, Address, User, Orders, Product, Tag, OrderItem, Comment, PriceAlert, \
     Tasks, Box, Shipment, SiteVisitCount
 from tasks import simple_task
@@ -718,6 +718,11 @@ def profile_orders():
 def profile_addresses():
     form = AddAddress()
     if form.validate_on_submit():
+
+        if not can_deliver_to(form.postcode.data):
+            flash("Sorry, we don't currently deliver to that PIN code.", "danger")
+            return render_template("Profile/profile_addresses.html", form=form)
+
         # Unset all current addresses for the user
         Address.query.filter_by(user_id=current_user.id).update({'current_address': False})
 
