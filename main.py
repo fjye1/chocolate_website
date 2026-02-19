@@ -22,6 +22,7 @@ from sqlalchemy import func, literal, event
 from sqlalchemy.orm import joinedload
 from werkzeug.security import generate_password_hash, check_password_hash
 from xhtml2pdf import pisa
+from slugify import slugify
 
 # Local application imports
 from extension import db
@@ -327,7 +328,7 @@ def home():
         user_alerts=user_alerts
     )
 
-
+#/<slug>
 @app.route('/product')
 def product_page():
     product_key = request.args.get('product')
@@ -410,9 +411,10 @@ def search():
     return render_template('Product/search_results.html', query=query, results=results)
 
 
-@app.route("/product/<int:product_id>", methods=["GET", "POST"])
-def product_detail(product_id):
-    product = ProductService.get_product_by_id(product_id)
+@app.route("/product/<slug>", methods=["GET", "POST"])
+def product_detail(slug):
+    product = ProductService.get_product_by_slug(slug)  # need to add this method
+    product_id = product.id  # keep this since it's used throughout
 
     results = (
         db.session.query(Product)
@@ -1577,6 +1579,7 @@ def create_product():
 
         new_product = Product(
             name=form.name.data,
+            slug=slugify(form.name.data),
             description=form.description.data,
             weight_per_unit=float(form.weight_per_unit.data),
             image=rel_image,
@@ -1595,6 +1598,8 @@ def create_product():
         )
 
         db.session.add(new_product)
+        safe_commit()
+        new_product.slug = f"{slugify(form.name.data)}-{new_product.id}"
         safe_commit()
 
         flash('Product created!')

@@ -134,6 +134,9 @@ def update_dynamic_prices():
 
 
 class ProductService:
+    @staticmethod
+    def get_product_by_slug(slug):
+        return Product.query.filter_by(slug=slug).first_or_404()
     """
     Service layer that abstracts Product data access.
     Routes talk to this service, not directly to the model.

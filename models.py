@@ -107,6 +107,7 @@ product_tags = db.Table(
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
+    slug = db.Column(db.String(255), unique=True, nullable=True)
     description = db.Column(db.Text)
     image = db.Column(db.String(200))
     pdf_image = db.Column(db.String(200), nullable=True)
