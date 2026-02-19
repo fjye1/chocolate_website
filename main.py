@@ -1846,6 +1846,53 @@ def delivery():
                            delivery_fee=DELIVERY_FEE,
                            min_order=MIN_ORDER, )
 
+from flask import make_response, url_for
+from datetime import datetime
+
+# ─── Sitemap Configuration ─────────────────────────────────────────────────
+SITE_URL = "https://www.regalchocolate.in"  # no trailing slash
+# ──────────────────────────────────────────────────────────────────────────
+
+@app.route("/sitemap.xml")
+def sitemap():
+    pages = []
+
+    # ── Static pages ──────────────────────────────────────────────────────
+    static_pages = ["home", "about", "contact", "delivery"]
+    for route in static_pages:
+        pages.append({
+            "loc": SITE_URL + url_for(route),
+            "priority": "1.0" if route == "index" else "0.6",
+            "changefreq": "monthly",
+        })
+
+    # ── Product pages ─────────────────────────────────────────────────────
+    products = Product.query.filter_by().all()  # adjust filter if needed
+    for product in products:
+        pages.append({
+            "loc": SITE_URL + url_for("product_page", product_id=product.id),  # adjust endpoint name
+            "priority": "0.9",
+            "changefreq": "daily",
+        })
+
+    # ── Build XML ─────────────────────────────────────────────────────────
+    xml = ['<?xml version="1.0" encoding="UTF-8"?>']
+    xml.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
+
+    for page in pages:
+        xml.append("  <url>")
+        xml.append(f"    <loc>{page['loc']}</loc>")
+        xml.append(f"    <changefreq>{page['changefreq']}</changefreq>")
+        xml.append(f"    <priority>{page['priority']}</priority>")
+        xml.append(f"    <lastmod>{datetime.utcnow().strftime('%Y-%m-%d')}</lastmod>")
+        xml.append("  </url>")
+
+    xml.append("</urlset>")
+
+    response = make_response("\n".join(xml))
+    response.headers["Content-Type"] = "application/xml"
+    return response
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))  # use Render's assigned port if available
