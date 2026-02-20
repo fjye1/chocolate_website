@@ -133,38 +133,6 @@ def set_security_headers(response):
 
 
 @app.before_request
-def count_visit():
-    if 'counted_today' in session:
-        return None
-
-    if request.path.startswith((
-            '/static', '/favicon', '/robots.txt', '/manifest.json'
-    )) or request.path.endswith(('.css', '.js', '.png', '.jpg', '.ico')):
-        return None
-
-    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-    log_line = f"{datetime.now()} | Path: {request.path} | IP: {ip}\n"
-    with open(LOG_PATH, 'a') as f:
-        f.write(log_line)
-
-    # Only query DB once per process
-    if not hasattr(g, 'today_counter'):
-        today = date.today()
-        g.today_counter = SiteVisitCount.query.get(today)
-        if not g.today_counter:
-            g.today_counter = SiteVisitCount(date=today, visit_count=1)
-            db.session.add(g.today_counter)
-        else:
-            g.today_counter.visit_count += 1
-        safe_commit()
-    else:
-        g.today_counter.visit_count += 1
-        safe_commit()
-
-    session['counted_today'] = True
-
-
-@app.before_request
 def load_cart():
     g.cart_items = []
 
