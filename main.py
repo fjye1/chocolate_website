@@ -1696,7 +1696,40 @@ def admin_edit_product(product_id):
         product.name = form.name.data
         product.description = form.description.data
         product.image = form.image.data
-        product.weight = form.weight.data
+
+        #---------------Image Saving
+
+        image_file = form.image.data
+        if image_file:
+            ext = os.path.splitext(image_file.filename)[1].lower()
+            image_filename = f"{uuid.uuid4()}{ext}"
+
+            UPLOAD_ROOT = "/var/www/uploads"
+            save_dir = os.path.join(UPLOAD_ROOT, "choc")
+            os.makedirs(save_dir, exist_ok=True)
+
+            image_path = os.path.join(save_dir, image_filename)
+            image_file.save(image_path)
+
+            # PDF-friendly version
+            if ext in ['.jpg', '.jpeg', '.png']:
+                pdf_friendly_filename = image_filename
+            else:
+                try:
+                    png_fname = f"{uuid.uuid4()}.png"
+                    png_path = os.path.join(save_dir, png_fname)
+
+                    with Image.open(image_path) as img:
+                        img = img.convert("RGB")
+                        img.save(png_path, format='PNG')
+
+                    pdf_friendly_filename = png_fname
+                except Exception:
+                    current_app.logger.exception("Image conversion failed")
+                    pdf_friendly_filename = image_filename
+
+            product.image = f"uploads/choc/{image_filename}"
+            product.pdf_image = f"uploads/choc/{pdf_friendly_filename}"
 
         # Tags
         tag_names = [n.strip() for n in form.tags.data.split(',') if n.strip()]
