@@ -38,14 +38,20 @@
         <td>{{ product.earliest_expiry.strftime('%d %b %Y') if product.earliest_expiry else "-" }}</td>
         <td>{{ product.days_left if product.earliest_expiry else "-" }}</td>
         <td>{{ product.tag_names }}</td>
+
         <td>
-            <!-- Actions -->
+            <a href="{{ url_for('admin_edit_product', product_id=product.id) }}"
+               class="btn btn-sm btn-primary">
+                Edit
+            </a>
         </td>
+
+
         <td>{{ "On" if product.dynamic_pricing_enabled else "Off" }}</td>
-        <td>₹{{ "%.2f"|format(product.avg_alert_price)  }}</td>
-        <td>₹{{ "%.2f"|format(product.total_revenue)  }}</td>
-        <td>₹{{ "%.2f"|format(product.profit)  }}</td>
-        <td>{{ "%.2f"|format(product.profit_percent)  }}%</td>
+        <td>₹{{ "%.2f"|format(product.avg_alert_price) }}</td>
+        <td>₹{{ "%.2f"|format(product.total_revenue) }}</td>
+        <td>₹{{ "%.2f"|format(product.profit) }}</td>
+        <td>{{ "%.2f"|format(product.profit_percent) }}%</td>
     </tr>
     {% endfor %}
     </tbody>

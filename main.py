@@ -1688,21 +1688,18 @@ def admin_edit_product(product_id):
     product = db.get_or_404(Product, product_id)
     form = ProductForm(obj=product)
 
-    # Pre-fill tags field as a string
+    # Pre-fill tags
     if request.method == 'GET':
-        form.tags.data = ', '.join([tag.name for tag in product.tags])
+        form.tags.data = ', '.join(tag.name for tag in product.tags)
 
     if form.validate_on_submit():
-        # Manually populate everything except the tags field
         product.name = form.name.data
-        product.price = form.price.data
         product.description = form.description.data
         product.image = form.image.data
         product.weight = form.weight.data
-        product.quantity = form.quantity.data
 
-        # Handle tags manually
-        tag_names = [name.strip() for name in form.tags.data.split(',') if name.strip()]
+        # Tags
+        tag_names = [n.strip() for n in form.tags.data.split(',') if n.strip()]
         tag_objects = []
         for name in tag_names:
             tag = Tag.query.filter_by(name=name).first()
@@ -1716,7 +1713,11 @@ def admin_edit_product(product_id):
         safe_commit()
         return redirect(url_for('admin_products'))
 
-    return render_template('Admin/admin_products_edit.html', form=form, product=product)
+    return render_template(
+        'Admin/admin_products_edit.html',
+        form=form,
+        product=product
+    )
 
 
 # TODO determine if this is still used i dont think it is 24/11/2025
