@@ -1034,6 +1034,7 @@ def create_payment_intent():
             'shipping': str(totals["shipping"]),
             'card_fee': str(totals["card_fee"]),
             'grand_total': str(totals["grand_total"]),
+            "free_shipping": str(totals["free_shipping"]),
         },
         automatic_payment_methods={'enabled': True}
     )
