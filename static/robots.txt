@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+# Block admin and internal routes
+Disallow: /admin/
+Disallow: /cart/
+Disallow: /checkout/
+Disallow: /account/
+Disallow: /test_pool
+
+Sitemap: https://regalchocolate.in/sitemap.xml

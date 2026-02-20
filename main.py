@@ -1845,6 +1845,10 @@ def delivery():
                            delivery_fee=DELIVERY_FEE,
                            min_order=MIN_ORDER, )
 
+@app.route('/robots.txt')
+def robots():
+    return app.send_static_file('robots.txt')
+
 
 from flask import make_response, url_for
 from datetime import datetime
