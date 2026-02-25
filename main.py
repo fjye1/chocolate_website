@@ -1687,10 +1687,11 @@ def admin_edit_product(product_id):
         product.description = form.description.data
         product.image = form.image.data
 
-        #---------------Image Saving
-
+        # ---------------Image Saving
         image_file = form.image.data
-        if image_file:
+
+        # Check if a new file was uploaded
+        if hasattr(image_file, 'filename') and image_file.filename:
             ext = os.path.splitext(image_file.filename)[1].lower()
             image_filename = f"{uuid.uuid4()}{ext}"
 
@@ -1718,8 +1719,14 @@ def admin_edit_product(product_id):
                     current_app.logger.exception("Image conversion failed")
                     pdf_friendly_filename = image_filename
 
+            # Update product with new file paths
             product.image = f"uploads/choc/{image_filename}"
             product.pdf_image = f"uploads/choc/{pdf_friendly_filename}"
+
+        # If no new file uploaded, keep the existing image
+        else:
+            # product.image and product.pdf_image remain unchanged
+            pass
 
         # Tags
         tag_names = [n.strip() for n in form.tags.data.split(',') if n.strip()]
