@@ -9,6 +9,7 @@ from datetime import timedelta, timezone, date
 from functools import wraps
 
 # Third-party imports
+from collections import Counter
 import stripe
 from PIL import Image, UnidentifiedImageError
 from dotenv import load_dotenv
@@ -146,6 +147,24 @@ def load_cart():
     else:
         g.cart_items = session.get('basket', [])
 
+@app.context_processor
+def inject_top_tags():
+    # Get all products
+    products = Product.query.all()
+
+    # Flatten all tags
+    all_tags = []
+    for p in products:
+        all_tags.extend([t.name for t in p.tags])  # adjust if t is string or object
+
+    # Top 6
+    top_six = [tag for tag, _ in Counter(all_tags).most_common(6)]
+
+    # Split 3/3
+    left_tags = top_six[:3]
+    right_tags = top_six[3:]
+
+    return dict(left_tags=left_tags, right_tags=right_tags)
 
 @app.context_processor
 def inject_cart():
@@ -291,6 +310,8 @@ def home():
             PriceAlert.product_id.in_(product_ids)
         ).all()
         user_alerts = {alert.product_id: alert for alert in alerts}
+
+
 
     return render_template(
         "home_page.html",

@@ -91,7 +91,7 @@
 
                     {% if cart_items|length > 0 %}
                     <span class="position-absolute badge rounded-pill bg-danger"
-      style="top: 25px; right: 10px; font-size: 0.7rem; min-width: 20px;">
+                          style="top: 25px; right: 10px; font-size: 0.7rem; min-width: 20px;">
     {{ cart_items|length }}
 </span>
                     {% endif %}
@@ -105,24 +105,26 @@
 <div class="categories-bg-header">
     <div class="categories-grid hide-under-900">
         <div class="left-second-section" style="height: 30px;">
-
             <ul class="nav mb-0">
-                <li><a href="{{ url_for('product_page') }}?product=Milky"
-                       class="nav-link px-2 link-body-emphasis">Milky</a></li>
-                <li><a href="{{ url_for('product_page') }}?product=Saucy"
-                       class="nav-link px-2 link-body-emphasis">Saucy</a></li>
+                {% for tag in left_tags %}
+                <li>
+                    <a href="{{ url_for('product_page') }}?product={{ tag }}"
+                       class="nav-link px-2 link-body-emphasis">{{ tag }}</a>
+                </li>
+                {% endfor %}
             </ul>
         </div>
 
         <div class="center-logo" style="height: 30px;"></div>
+
         <div class="right-second-section" style="height: 30px;">
             <ul class="nav mb-0">
-                <li><a href="{{ url_for('product_page') }}?product=Crunchy"
-                       class="nav-link px-2 link-body-emphasis">Crunchy</a>
+                {% for tag in right_tags %}
+                <li>
+                    <a href="{{ url_for('product_page') }}?product={{ tag }}"
+                       class="nav-link px-2 link-body-emphasis">{{ tag }}</a>
                 </li>
-                <li><a href="{{ url_for('product_page') }}?product=Special"
-                       class="nav-link px-2 link-body-emphasis">Special</a>
-                </li>
+                {% endfor %}
             </ul>
         </div>
     </div>
